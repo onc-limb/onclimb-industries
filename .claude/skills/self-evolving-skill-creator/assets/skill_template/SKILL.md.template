@@ -1,0 +1,84 @@
+---
+name: {{SKILL_NAME}}
+description: {{SKILL_DESCRIPTION}}
+metadata:
+  type: skill
+  has_self_evolution_pipeline: true
+  evolution_threshold_default: {{EVOLUTION_THRESHOLD}}
+---
+
+# {{SKILL_NAME}}
+
+{{SKILL_DESCRIPTION}}
+
+このスキルは **自己進化** を備えています。
+
+- 各サイクルを `logs/pipeline.jsonl` に記録する。
+- 完了条件は `success` / `failure` / `unknown` / `error` のいずれかを必ず付与する。
+- `pipeline.config.json` の `evolution_threshold` (既定 {{EVOLUTION_THRESHOLD}}) 回サイクルを回したら、`scripts/evolve.py review` を実行し `EVOLUTION.md` に提案を追記する。
+- 採否判断は `references/evolution_principles.md` (self-evolving-skill-creator から複製) に準拠。
+
+---
+
+## いつ呼び出すか
+
+(TODO: トリガー条件を具体的に書く。例: 「PR 番号を渡して『レビューして』と言われたとき」「`*.dxf` 形式の図面が添付されたとき」)
+
+---
+
+## 通常運用 (1 サイクルの流れ)
+
+```bash
+# 1. サイクル開始
+CYCLE_ID=$(python scripts/pipeline.py log-start \
+  --skill-name {{SKILL_NAME}} \
+  --instruction "<受け取った指示の要約 (PII マスク)>")
+
+# 2. 中核の作業 (このスキル本来の仕事)
+# ...
+
+# 3. サイクル終了 + 進化トリガー判定
+python scripts/pipeline.py log-end \
+  --skill-name {{SKILL_NAME}} \
+  --cycle-id "$CYCLE_ID" \
+  --completion-state success \
+  --completion-reason "<根拠>" \
+  --output-summary "<アウトプットパス or 要約>"
+```
+
+`log-end` の戻り値 JSON で `"evolution_due": true` の場合、`python scripts/evolve.py review` を実行してください。
+
+---
+
+## 完了条件の判断指針
+
+- **success**: 外部から検証可能な達成基準を満たした。
+- **failure**: 達成不可と確定。原因明示。
+- **unknown**: 出力はしたが達成判定不能 (ユーザー確認待ち or 次サイクルで詰める)。
+- **error**: 例外 / 前提欠落で完遂できず。新サイクルで対処する。
+
+詳細は `references/pipeline_spec.md` (self-evolving-skill-creator 由来) を参照。
+
+---
+
+## 自己進化
+
+- ログが {{EVOLUTION_THRESHOLD}} 件溜まると進化レビューが発火。
+- `EVOLUTION.md` に提案を追記 (自動適用は既定で off)。
+- スナップショット: `python scripts/evolve.py snapshot` で `logs/evolutions/<ts>/before/` に現状保存。
+- 適用後は進化サイクル自体も `pipeline.py log-end` で記録する (`--action evolve.py`)。
+
+---
+
+## 推測実装ルール
+
+- 推測で進めた箇所は `pipeline.py log-end --assumption-note "..."` でサイクルログに残す (別ファイルは作らない)。
+- コード内で印を付ける場合は `// ASSUMPTION:` を使う。
+
+---
+
+## やってはいけないこと
+
+- `scripts/pipeline.py` を破壊的に書き換える (進化対象外)。
+- 完了条件を空欄でサイクルを閉じる。
+- ユーザー個別の好みを SKILL.md 本文に混ぜる (`references/user_preferences.md` に分離)。

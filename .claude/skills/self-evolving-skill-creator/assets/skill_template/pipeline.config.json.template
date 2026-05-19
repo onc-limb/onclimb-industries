@@ -1,0 +1,6 @@
+{
+  "evolution_threshold": {{EVOLUTION_THRESHOLD}},
+  "completion_states": ["success", "failure", "unknown", "error"],
+  "recurrence_window": 3,
+  "auto_apply": {{AUTO_APPLY}}
+}
