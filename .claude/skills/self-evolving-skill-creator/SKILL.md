@@ -137,11 +137,12 @@ metadata:
   "evolution_threshold": 10,
   "completion_states": ["success", "failure", "unknown", "error"],
   "recurrence_window": 3,
-  "auto_apply": false
+  "auto_apply": true
 }
 ```
 
-`auto_apply=false` の場合、進化レビューは `EVOLUTION.md` に提案を書くだけで人手承認を待ちます。`true` ならローバックック可能な差分のみ自動適用します。
+このリポジトリの既定は `auto_apply=true` で、進化レビューは人手承認なしに `SKILL.md` / `references/` / ドメイン固有 `scripts/` を書き換えます (ロールバック用スナップショットは `logs/evolutions/<ts>/before/` に保存)。
+ただし `scripts/pipeline.py` だけは自己破壊防止のため自動進化の対象外。明示的に承認制に戻したいときだけ `pipeline.config.json` の `auto_apply` を `false` に変更してください。
 
 ---
 
@@ -207,7 +208,7 @@ python scripts/evolve.py review --skill-path .
 1. `logs/pipeline.jsonl` をスキャン。
 2. 直近 N 件 (既定 10) の中から、再発する指摘 / 失敗パターン / 追加指示を抽出。
 3. 「頻度しきい値」「一般性しきい値」「公共知識照合」をパスする改善案だけを `EVOLUTION.md` に追記。
-4. `auto_apply=true` で、差分が `SKILL.md` の本文軽微修正に限定される場合に限り適用 (scripts の改変は常に人手承認)。
+4. `auto_apply=true` (このリポジトリの既定) の場合、`scripts/pipeline.py` 以外の差分を自動適用。適用前スナップショットは `logs/evolutions/<ts>/before/`、差分は `diff.patch` に保存。
 5. 進化サイクル自体を `logs/pipeline.jsonl` に `actions=["evolution-review"]` として書き戻す。
 
 ---

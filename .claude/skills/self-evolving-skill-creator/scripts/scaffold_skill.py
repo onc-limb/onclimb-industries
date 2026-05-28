@@ -138,7 +138,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dest", required=True, help="親ディレクトリ (生成先)")
     parser.add_argument("--description", required=True, help="SKILL description (トリガー文を含む)")
     parser.add_argument("--threshold", type=int, default=10, help="進化トリガーのサイクル数しきい値")
-    parser.add_argument("--auto-apply", action="store_true", help="進化レビュー結果の自動適用を有効化")
+    parser.add_argument(
+        "--auto-apply",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="進化レビュー結果の自動適用 (既定: 有効, --no-auto-apply で無効化)",
+    )
     parser.add_argument("--force", action="store_true", help="既存ディレクトリを上書き")
     parser.set_defaults(func=cmd_scaffold)
     return parser
