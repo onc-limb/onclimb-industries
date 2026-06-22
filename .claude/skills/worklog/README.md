@@ -7,8 +7,8 @@ Claude Code での作業（会話＋ツール操作）を自動で記録し、**
 
 1. **記録** … セッション終了 Hook と毎日の定期実行で、生ログを `raw/` へ二重に収集（消失対策）
 2. **分類** … プロジェクト×日付にグルーピング
-3. **要約** … 報告書／成果報告／ナレッジの 3 形式に整形（ノイズ除去込み）
-4. **退避** … 要約済みの生ログを月次 zip でアーカイブ（削除ではなく圧縮退避）
+3. **整理** … プロジェクト視点 / 技術者視点の 2 形式の「整理された情報（digest）」に構造化（ノイズ除去込み）。最終報告書ではなく、別スキルが報告書へ整形するための素材
+4. **退避** … 整理済みの生ログを月次 zip でアーカイブ（削除ではなく圧縮退避）
 
 ---
 
@@ -36,14 +36,14 @@ Claude Code での作業（会話＋ツール操作）を自動で記録し、**
 ├── bin/
 │   ├── collect.sh / collect_impl.py   # 生JSONL を raw/ へ収集・構造抽出・マスキング
 │   ├── classify.py                    # プロジェクト×日付に分類
-│   ├── summarize.py                   # 3形式の報告書を生成（claude -p）
-│   ├── archive.sh / archive_impl.py   # 要約済み生ログを月次 zip 退避
+│   ├── summarize.py                   # 2形式の整理情報を生成（claude -p）
+│   ├── archive.sh / archive_impl.py   # 整理済み生ログを月次 zip 退避
 │   └── worklog_lib.py                 # 共通ライブラリ（軽量YAMLパーサ含む・依存ゼロ）
 ├── config/
 │   ├── sources.yaml          # 収集対象パス（CLI / デスクトップアプリ）
 │   ├── projects.yaml         # プロジェクトID・判定キーワード・パス
 │   └── redaction.yaml        # マスキング辞書（SES守秘）
-├── templates/                # 3形式の出力テンプレート
+├── templates/                # 整理情報2形式のテンプレート（project / tech）
 └── deploy/                   # Hooks 設定サンプル + cron / launchd サンプル
     ├── settings.sample.json
     ├── crontab.sample
@@ -57,8 +57,8 @@ Claude Code での作業（会話＋ツール操作）を自動で記録し、**
 ├── raw/                      # 収集した生ログ（構造抽出・マスキング済み、未分類）
 │   └── .cursor               # 取り込み済みオフセット（冪等化用）
 ├── classified/               # 分類済み（プロジェクト/日付別）。_unclassified/ は判定不能分
-├── reports/{progress,deliverables,knowledge}/   # 生成された報告書
-├── archive/                  # 要約済み生ログの zip（YYYY-MM.zip）
+├── digests/{project,tech}/   # 生成された整理情報（報告書の素材）
+├── archive/                  # 整理済み生ログの zip（YYYY-MM.zip）
 └── logs/                     # cron/launchd の実行ログ
 ```
 
@@ -76,7 +76,7 @@ Claude Code での作業（会話＋ツール操作）を自動で記録し、**
 ### 1. 依存
 
 - `python3`（標準ライブラリのみ。pyyaml 等の追加パッケージ不要）
-- `claude` CLI（要約に使用。無くても収集・分類は動き、要約はプロンプトを `.prompt.txt` に書き出す）
+- `claude` CLI（整理に使用。無くても収集・分類は動き、整理はプロンプトを `.prompt.txt` に書き出す）
 
 ### 2. 履歴の保持期間を延ばす（推奨）
 
@@ -134,8 +134,8 @@ launchctl load ~/Library/LaunchAgents/com.user.worklog.collect.plist
 ## 日々の運用
 
 - **収集は全自動**（Hook ＋ 毎日 cron/launchd）。普段は何もしなくてよい。
-- **分類・要約は区切りで半自動**。一日の終わりやタスクの区切りで、Claude Code に
-  「**今日の作業まとめて**」と言えば、スキル `worklog` が当日分を 収集→分類→3形式の報告書 まで生成する。
+- **分類・整理は区切りで半自動**。一日の終わりやタスクの区切りで、Claude Code に
+  「**今日の作業まとめて**」と言えば、スキル `worklog` が当日分を 収集→分類→2形式の整理情報 まで生成する。
 - 手動で回す場合:
 
 ```bash
@@ -146,18 +146,22 @@ python3 "$SKILL/bin/classify.py" "$TODAY"
 python3 "$SKILL/bin/summarize.py" "$TODAY"
 ```
 
-生成物: `worklog-data/reports/{progress,deliverables,knowledge}/<project>_<date>.md`
+生成物: `worklog-data/digests/{project,tech}/<project>_<date>.md`（＝報告書の素材となる整理情報）
+
+各 digest は結論層（TL;DR/サマリ）＋詳細層を持ち、下流の用途別に出し分けできる:
+- `project` … 進捗報告書・作業報告書 / 上長・顧客向けサマリ / 振り返り(レトロ) の素材
+- `tech` … 技術ナレッジ・スキル証跡 / 手順書(Runbook) / 技術報告書・技術メモ の素材
 
 ### 退避（任意・区切りで）
 
-要約が済んだ月の生ログを zip に固めて元ファイルを消す（zip には必ず残る）。
+整理が済んだ月の生ログを zip に固めて元ファイルを消す（zip には必ず残る）。
 
 ```bash
-bash "$SKILL/bin/archive.sh" --check 2026-05   # 未要約チェックのみ
+bash "$SKILL/bin/archive.sh" --check 2026-05   # 未整理チェックのみ
 bash "$SKILL/bin/archive.sh" 2026-05           # 退避実行
 ```
 
-未要約ログが残っていると既定で中断する（`--force` で強制）。
+未整理ログ（digest 未生成）が残っていると既定で中断する（`--force` で強制）。
 
 ---
 
@@ -177,8 +181,8 @@ bash "$SKILL/bin/archive.sh" 2026-05           # 退避実行
 - **Web 版（claude.ai）は収集対象外**。ローカルにログファイルが無く、サーバ側管理のため取得できない（仕様）。
 - デスクトップアプリ Code タブのトランスクリプト実体は CLI と同じ `~/.claude/projects/` に
   `cliSessionId` で保存される。`claude-code-sessions/` 側はメタデータ（タイトル等）として参照する。
-- 要約は `claude -p`（ヘッドレス）を使う。`claude` が無い/失敗時は合成プロンプトを
-  `reports/<type>/<...>.prompt.txt` に保存するので、後から手動生成できる。
+- 整理は `claude -p`（ヘッドレス）を使う。`claude` が無い/失敗時は合成プロンプトを
+  `digests/<type>/<...>.prompt.txt` に保存するので、後から手動生成できる。
 
 ---
 

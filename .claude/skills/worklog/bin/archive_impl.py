@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 """archive 本体（archive.sh から呼ばれる）。
 
-要約完了済みの raw/ classified/ を月単位で zip 化し archive/YYYY-MM.zip へ退避する。
+整理済みの raw/ classified/ を月単位で zip 化し archive/YYYY-MM.zip へ退避する。
 - 圧縮後に元ファイルを削除（zip 内には必ず残る＝完全消失しない）。
-- 実行前に「未要約のログが残っていないか」をチェックし、残っていれば中断・警告する。
-  （reports/{progress,deliverables,knowledge}/<pid>_<date>.md が揃っているかで判定）
+- 実行前に「未整理のログが残っていないか」をチェックし、残っていれば中断・警告する。
+  （digests/{project,tech}/<pid>_<date>.md が揃っているかで判定）
 
 使い方:
   bin/archive.sh                 # 当月より前の全月を対象（安全）
   bin/archive.sh 2026-05         # 指定月のみ
-  bin/archive.sh 2026-05 --force # 未要約があっても強制実行
-  bin/archive.sh --check 2026-05 # 退避せず未要約チェックのみ
+  bin/archive.sh 2026-05 --force # 未整理があっても強制実行
+  bin/archive.sh --check 2026-05 # 退避せず未整理チェックのみ
 """
 import glob
 import json
@@ -24,7 +24,8 @@ from datetime import datetime, timezone, timedelta
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import worklog_lib as W  # noqa: E402
 
-FORMATS = ["progress", "deliverables", "knowledge"]
+FORMATS = ["project", "tech"]
+DIGEST_SUBDIR = "digests"
 DATE_RE = re.compile(r"(\d{4}-\d{2})-\d{2}\.jsonl$")
 
 
@@ -51,13 +52,13 @@ def raw_files_for_month(home, month):
 
 
 def find_unsummarized(home, month):
-    """要約レポートが揃っていない (pid, date) を返す。"""
+    """整理情報(digest)が揃っていない (pid, date) を返す。"""
     missing = []
     for cf in classified_files_for_month(home, month):
         pid = os.path.basename(os.path.dirname(cf))
         date = os.path.basename(cf)[:-6]
         lack = [fmt for fmt in FORMATS
-                if not os.path.isfile(os.path.join(home, "reports", fmt, "%s_%s.md" % (pid, date)))]
+                if not os.path.isfile(os.path.join(home, DIGEST_SUBDIR, fmt, "%s_%s.md" % (pid, date)))]
         if lack:
             missing.append((pid, date, lack))
     return missing
@@ -72,17 +73,17 @@ def archive_month(home, month, force, check_only):
 
     missing = find_unsummarized(home, month)
     if missing:
-        sys.stderr.write("[archive] %s: 未要約のログがあります:\n" % month)
+        sys.stderr.write("[archive] %s: 未整理のログ（digest未生成）があります:\n" % month)
         for pid, date, lack in missing:
             sys.stderr.write("    - %s/%s 不足: %s\n" % (pid, date, ",".join(lack)))
         if check_only:
             return
         if not force:
-            sys.stderr.write("[archive] %s: 中断（先に summarize するか --force を付けてください）\n" % month)
+            sys.stderr.write("[archive] %s: 中断（先に summarize で整理するか --force を付けてください）\n" % month)
             return
-        sys.stderr.write("[archive] %s: --force のため未要約があっても続行します\n" % month)
+        sys.stderr.write("[archive] %s: --force のため未整理があっても続行します\n" % month)
     if check_only:
-        sys.stderr.write("[archive] %s: 未要約なし（チェックのみ・退避はしません）\n" % month)
+        sys.stderr.write("[archive] %s: 未整理なし（チェックのみ・退避はしません）\n" % month)
         return
 
     archive_dir = os.path.join(home, "archive")

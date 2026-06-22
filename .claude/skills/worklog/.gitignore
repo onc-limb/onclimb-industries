@@ -1,5 +1,5 @@
 # worklog スキル: コード・設定のみを追跡する。
-# 収集データ（raw/classified/reports/archive/logs）は worklog-data/ に分離され、
+# 収集データ（raw/classified/digests/archive/logs）は worklog-data/ に分離され、
 # リポジトリ直下の .gitignore で /worklog-data/ ごと除外している。
 
 # Python キャッシュ
@@ -9,6 +9,7 @@ __pycache__/
 # 念のため: 万一データがここに生成されても追跡しない
 /raw/
 /classified/
+/digests/
 /reports/
 /archive/
 /logs/
