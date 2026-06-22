@@ -1,0 +1,12 @@
+# Generated documents produced by skills (kept out of version control)
+/out/
+
+# Pipeline execution logs emitted at the repo root
+# NOTE: skill-local logs (.claude/skills/*/logs/) are tracked on purpose
+/logs/
+
+# Voice/source archives generated at the repo root
+/*-omni-archive.md
+
+# macOS
+.DS_Store
