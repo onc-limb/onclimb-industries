@@ -1,0 +1,33 @@
+# 収集対象パスの定義
+# collect.sh / collect_impl.py がこのファイルを読み、各 source からログを収集する。
+# パスは ~ を使ってよい（実行時に展開される）。環境変数 ${VAR} も展開される。
+# OS ごとに分岐する場合は os に "macos" / "windows" / "any" を指定する（実行環境と一致する source だけ使われる）。
+#
+# 依頼者へ: ここに監視したいパスを追加すれば、その場所のログも収集対象になる。
+
+sources:
+  # --- CLI（メイン）-----------------------------------------------------
+  # Claude Code CLI のトランスクリプト。デスクトップアプリ Code タブの実体も
+  # cliSessionId を介してここ（projects/）に保存されるため、まずここを必ず収集する。
+  - id: cli
+    os: any
+    type: cli_jsonl
+    # <project> ディレクトリ配下の *.jsonl を再帰的に収集する。
+    path: ~/.claude/projects
+
+  # --- デスクトップアプリ Code タブ（メタデータ）------------------------
+  # ここにあるのはセッション*メタデータ*（title / cliSessionId / cwd 等）で、
+  # 会話本体は CLI 側（projects/）に cliSessionId で保存されている。
+  # collect はこのメタデータを読んで該当 cliSessionId を source=desktop として
+  # タグ付け（＋ title 付与）するために使う。
+  - id: desktop-macos
+    os: macos
+    type: desktop_meta
+    path: ~/Library/Application Support/Claude/claude-code-sessions
+
+  - id: desktop-windows
+    os: windows
+    type: desktop_meta
+    path: ${AppData}/Claude/claude-code-sessions
+
+# Web 版（claude.ai）はローカルにファイルが存在しないため収集対象外（仕様上の制約）。

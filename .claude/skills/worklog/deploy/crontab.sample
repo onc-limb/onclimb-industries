@@ -1,0 +1,13 @@
+# worklog 毎日1回 自動収集（Linux / macOS 共通）
+# crontab -e で以下を追記する。<SKILL> はスキルディレクトリの実パスに置換すること。
+#
+#   例: /Users/satoshi-onga/Documents/portfolio/jarvis/.claude/skills/worklog
+#
+# データ置き場は既定でリポジトリ直下の worklog-data/。変えたい場合は行頭に WORKLOG_DATA=/path を付ける。
+#
+# 毎日 23:50 に収集（取りこぼし・アップデート起因の消失前に退避）
+50 23 * * * /bin/bash <SKILL>/bin/collect.sh >> /tmp/worklog-collect.log 2>&1
+
+# --- オプション: 分類・要約まで毎日自動化したい場合（claude CLI が必要）---
+# 完全無人で当日分を分類→3形式まで生成する。半自動運用で十分なら不要。
+# 0 0 * * * /bin/bash -lc 'D=$(date +\%F); python3 <SKILL>/bin/classify.py "$D"; python3 <SKILL>/bin/summarize.py "$D"' >> /tmp/worklog-summarize.log 2>&1

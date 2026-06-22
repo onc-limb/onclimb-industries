@@ -8,5 +8,8 @@
 # Voice/source archives generated at the repo root
 /*-omni-archive.md
 
+# worklog: 収集した作業ログ・生成物（機密を含みうるため追跡しない）
+/worklog-data/
+
 # macOS
 .DS_Store

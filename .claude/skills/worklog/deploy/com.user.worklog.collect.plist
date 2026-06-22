@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  worklog 毎日収集 (macOS launchd)
+  使い方:
+    1) <SKILL> をスキルディレクトリの実パスに置換
+       例: /Users/satoshi-onga/Documents/portfolio/jarvis/.claude/skills/worklog
+    2) ~/Library/LaunchAgents/ にコピー
+       cp deploy/com.user.worklog.collect.plist ~/Library/LaunchAgents/
+    3) ロード
+       launchctl load ~/Library/LaunchAgents/com.user.worklog.collect.plist
+    4) 解除する場合
+       launchctl unload ~/Library/LaunchAgents/com.user.worklog.collect.plist
+  毎日 23:50 に collect.sh を実行する。
+  データは既定でリポジトリ直下の worklog-data/ へ。変えたい場合は下の
+  EnvironmentVariables に WORKLOG_DATA を追加する。
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.worklog.collect</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string><SKILL>/bin/collect.sh</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>23</integer>
+        <key>Minute</key>
+        <integer>50</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/worklog-collect.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/worklog-collect.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

@@ -1,0 +1,49 @@
+# マスキング辞書（collect 段階で raw/ 書き込み前に適用）
+# SES 守秘対応: 顧客名・固有名詞・APIキー・トークン・接続文字列・本番URL・個人情報を
+# <REDACTED:種別> に伏字化する。生ログ時点で機密を残さないことが目的。
+#
+# 2 種類の指定方法:
+#   literals : 完全一致で置換する固定文字列（顧客名・社内サービス名など）。大文字小文字を無視。
+#   patterns : 正規表現で置換する（Python re 構文）。汎用的な機密パターン。
+#
+# label は <REDACTED:種別> の「種別」に入る。
+# group を指定すると、マッチ全体ではなくその括弧グループだけを伏字化する（前後の文脈を残す）。
+#
+# 依頼者へ: 参画先の固有名詞は literals に足していくのが基本運用。
+# 注意: このファイルは worklog 同梱の簡易 YAML パーサで読むため、
+#       ブロックスタイル（下記の形式）で書くこと。{a: b} のフロー記法は不可。
+
+literals:
+  # - value: "AcmeCorp"
+  #   label: "顧客名"
+  # - value: "社内決済システム"
+  #   label: "システム名"
+
+patterns:
+  # APIキー / トークン類
+  - regex: "(?i)(sk-[A-Za-z0-9]{20,})"
+    label: "APIキー"
+  - regex: "(?i)(ghp_[A-Za-z0-9]{30,})"
+    label: "GitHubトークン"
+  - regex: "(?i)(gho_[A-Za-z0-9]{30,})"
+    label: "GitHubトークン"
+  - regex: "(?i)(xox[baprs]-[A-Za-z0-9-]{10,})"
+    label: "Slackトークン"
+  - regex: "(AKIA[0-9A-Z]{16})"
+    label: "AWSキー"
+  - regex: "(AIza[0-9A-Za-z_-]{30,})"
+    label: "GCPキー"
+  - regex: "eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}"
+    label: "JWT"
+  - regex: "-----BEGIN[A-Z ]*PRIVATE KEY-----"
+    label: "秘密鍵"
+  # 接続文字列（scheme://user:password@host）
+  - regex: "(?i)([a-z0-9+.]+://[^\\s:@/]+:[^\\s:@/]+@[^\\s/]+)"
+    label: "接続文字列"
+  # メールアドレス（個人情報）
+  - regex: "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
+    label: "メール"
+  # 環境変数代入形式の秘密（PASSWORD=xxx, SECRET=xxx, TOKEN=xxx, api_key=xxx）
+  - regex: "(?i)(?:password|passwd|secret|token|api[_-]?key)\\s*[=:]\\s*(\\S+)"
+    label: "認証情報"
+    group: 1
