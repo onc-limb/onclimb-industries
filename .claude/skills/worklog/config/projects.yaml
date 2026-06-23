@@ -28,6 +28,42 @@ projects:
     keywords:
       - noboru
 
+  - id: climbinsight
+    path_globs:
+      - /Users/satoshi-onga/Documents/climbing-apps/climbinsight
+    repos:
+      - climbinsight
+    keywords: []
+
+  - id: budget-bot
+    path_globs:
+      - /Users/satoshi-onga/Documents/account/budget-bot
+    repos:
+      - budget-bot
+    keywords: []
+
+  - id: gcp-sand
+    path_globs:
+      - /Users/satoshi-onga/Documents/gcp-sand
+    repos:
+      - gcp-sand
+    keywords: []
+
+  # ariadne / marginalia は my-own-apps リポジトリ内のサブアプリ。一括で my-own-apps に分類する
+  - id: my-own-apps
+    path_globs:
+      - /Users/satoshi-onga/Documents/portfolio/my-own-apps
+    repos:
+      - my-own-apps
+    keywords: []
+
+  # 既にディレクトリは存在しないが、記録済み cwd 文字列で過去ログを振り分ける
+  - id: skills
+    path_globs:
+      - /Users/satoshi-onga/Documents/skills
+    repos: []
+    keywords: []
+
   # --- 例: SES 参画先（顧客名は出さず汎用 id にする）-----------------
   # - id: client-a
   #   path_globs:
