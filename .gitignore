@@ -14,5 +14,8 @@
 # knowledge-base: 生成した Obsidian vault（蓄積場所。別 private リポジトリで管理する前提）
 /knowledge-base/
 
+# giziroku: 入力の文字起こしと生成議事録（機密を含みうるため追跡しない）
+/giziroku/
+
 # macOS
 .DS_Store
