@@ -293,13 +293,285 @@ def write_index(home, note_subdir, techs, updated):
 
 
 # ---------------------------------------------------------------------------
+# 状態（_taxonomy.json）: 技術領域 + 取り込み済み digest（増分更新の土台）
+# ---------------------------------------------------------------------------
+
+STATE_FILE = "_taxonomy.json"
+
+
+def state_path(home):
+    return os.path.join(home, STATE_FILE)
+
+
+def save_state(home, techs, seen, updated):
+    import json as _json
+    data = {"technologies": techs, "seen": sorted(seen), "updated": updated}
+    with open(state_path(home), "w", encoding="utf-8") as f:
+        _json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def load_state(home):
+    """既存の状態を読む。無効/不在なら None。"""
+    import json as _json
+    p = state_path(home)
+    if not os.path.exists(p):
+        return None
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            data = _json.load(f)
+    except Exception:
+        return None
+    techs = data.get("technologies")
+    if not isinstance(techs, list) or not techs:
+        return None
+    # フィールド整形
+    for t in techs:
+        t["sources"] = list(t.get("sources") or [])
+        t["related"] = list(t.get("related") or [])
+        t.setdefault("category", "concept")
+        t.setdefault("title", t.get("slug", ""))
+    seen = data.get("seen")
+    if not seen:
+        # 旧フォーマット（seen 無し）からの移行: 既存ノートの sources を取り込み済みとみなす
+        seen = sorted({s for t in techs for s in t["sources"]})
+    data["seen"] = seen
+    return data
+
+
+# ---------------------------------------------------------------------------
+# 増分更新: 新規 digest のみ分類 → 該当ノートだけ「既存ノート + 新規 digest」で再生成
+# ---------------------------------------------------------------------------
+
+INCR_CLASSIFY_PROMPT = """\
+あなたは技術ナレッジの分類器です。既存の技術領域一覧と、新しく増えた digest の要点を渡します。
+各 digest を、内容が最も合致する **既存領域** に割り当ててください。
+どの既存領域にも当てはまらない場合に限り、新しい領域を提案します。
+
+# 出力（厳守）
+- **JSON のみ**を出力。前置き・後書き・コードフェンス・説明文は一切書かない。
+- スキーマ:
+{{
+  "assignments": [
+    {{"id": "<digest id>", "slugs": ["<既存 or new の slug>", ...]}}   // 1 digest を複数領域へ割当可
+  ],
+  "new_technologies": [
+    {{"slug": "kebab-ascii", "title": "表示名", "category": "language|framework|tool|infra|concept|practice", "related": ["<slug>", ...]}}
+  ]
+}}
+- 既存領域に合うなら新領域を作らない（無闇に増やさない）。
+- assignments の slugs には、既存 slug か new_technologies で定義した slug のみを使う。
+- 提示した digest id のみを使う。
+
+# 既存の技術領域（slug | title | category）
+{existing}
+
+# 新しく増えた digest（要点）
+{new_index}
+"""
+
+MERGE_PROMPT = """\
+あなたは既存の技術ナレッジノートに、新しく増えた作業ログ由来の知見を統合して
+更新版ノートを書き出すアシスタントです。
+
+# 最重要（厳守・これを破ると出力は無効）
+- あなたの応答テキストは、そのまま 1 つの Markdown ファイルとして上書き保存される。
+- よって応答には **更新後のノート本体のみ** を出力する。
+- 前置き・後書き・要約・「更新しました」等の作業報告・コードフェンス囲み・チャット的説明を一切書かない。
+- ファイル書き込みやツール実行はしない。出力したテキストがそのままノートになる。
+- 出力は必ず frontmatter（先頭行が `---`）から始める。
+
+# タスク
+「既存ノート」を土台に、「新しく増えた digest」群の知見**だけ**を統合し、更新版ノートを出力する。
+- 既存ノートの構成・既存の知見・既存の出典（出典: <project> / <date>）は維持する。
+- 新しい digest から得られる新規知見を追加し、各知見末尾に出典を明記する。
+- 既存と重複・矛盾する場合は、**追記で増やさず** 1 つに統合・更新（矛盾は併記）。ノートを肥大化させない。
+- frontmatter の `updated` を {updated} にする。tags は既存を尊重し、新たな寄与プロジェクトがあれば
+  `project/<id>` を追加する（既存タグは消さない）。
+- 関連技術リンクは {related} の slug のみ `[[<slug>]]`。それ以外のリンクは作らない。
+- 一般化して書く。固有名詞・接続情報・顧客特定情報は持ち込まない。<REDACTED:種別> は復元しない。捏造しない。
+
+# 対象の技術領域
+- タイトル: {title} ／ slug: {slug} ／ カテゴリ: {category}
+- 新たな寄与プロジェクト（あれば project/<id> タグに追加）: {projects}
+
+# 既存ノート（これを土台に更新する）
+{existing_note}
+
+# 新しく増えた digest 群（この分の知見だけ取り込む）
+{new_sources}
+"""
+
+
+def build_incr_classify_prompt(existing_techs, new_digests):
+    existing = "\n".join("%s | %s | %s" % (t["slug"], t.get("title", ""), t.get("category", ""))
+                         for t in existing_techs)
+    new_index = "\n\n".join(digest_index_entry(d) for d in new_digests)
+    return INCR_CLASSIFY_PROMPT.format(existing=existing, new_index=new_index)
+
+
+def build_merge_prompt(tech, existing_note, new_digests, updated):
+    projects = sorted(set(d["pid"] for d in new_digests))
+    blocks, total = [], 0
+    for d in new_digests:
+        block = "===== digest: %s (project=%s, date=%s) =====\n%s" % (
+            d["id"], d["pid"], d["date"], d["text"])
+        if total + len(block) > MAX_NOTE_SOURCE_CHARS:
+            blocks.append("…(入力が長いため以降の digest を省略)")
+            break
+        blocks.append(block)
+        total += len(block)
+    return MERGE_PROMPT.format(
+        title=tech.get("title") or tech["slug"],
+        slug=tech["slug"],
+        category=tech.get("category") or "concept",
+        related=", ".join(tech.get("related") or []) or "(なし)",
+        projects=", ".join(projects) or "(なし)",
+        updated=updated,
+        existing_note=existing_note,
+        new_sources="\n\n".join(blocks),
+    )
+
+
+def _write_note_guarded(out_path, ok, result):
+    """生成結果を frontmatter ガード付きで書き出す。(成功bool) を返す。"""
+    note = K.strip_code_fence(result) if ok else ""
+    if ok and not note.lstrip().startswith("---"):
+        with open(out_path + ".raw.txt", "w", encoding="utf-8") as f:
+            f.write(note)
+        return False
+    if ok:
+        for ext in (".raw.txt", ".prompt.txt"):
+            if os.path.exists(out_path + ext):
+                os.remove(out_path + ext)
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(note + "\n")
+        return True
+    return False
+
+
+def run_incremental(home, note_subdir, digests, state, opts, updated):
+    """増分更新: 新規 digest だけを分類し、影響を受けた技術ノートのみ
+    「既存ノート + 新規 digest」で再生成する。変化の無い領域はスキップ（LLM 呼び出しゼロ）。"""
+    notes_dir = os.path.join(home, note_subdir)
+    os.makedirs(notes_dir, exist_ok=True)
+    by_id = {d["id"]: d for d in digests}
+    techs = state["technologies"]
+    bymap = {t["slug"]: t for t in techs}
+    seen = set(state["seen"])
+
+    current_ids = set(by_id.keys())
+    new_ids = sorted(current_ids - seen)
+    if not new_ids:
+        idx = write_index(home, note_subdir, techs, updated)
+        save_state(home, techs, seen, updated)
+        sys.stderr.write("[kb] 増分更新: 新規 digest なし。最新です（index 更新のみ）。\n")
+        sys.stderr.write("[kb] ナレッジベース: %s\n" % home)
+        return 0
+    new_digests = [by_id[i] for i in new_ids]
+    sys.stderr.write("[kb] 増分更新: 新規 digest %d 件を分類します...\n" % len(new_ids))
+
+    # 1) 新規 digest を既存領域へ割り当て（必要なら新領域提案）
+    prompt = build_incr_classify_prompt(techs, new_digests)
+    ok, result = K.run_claude(prompt, timeout=TAXONOMY_TIMEOUT)
+    if not ok:
+        with open(os.path.join(home, "_incr_classify.prompt.txt"), "w", encoding="utf-8") as f:
+            f.write(prompt)
+        sys.stderr.write("[kb] 増分分類 失敗: %s -> プロンプトを保存\n" % result)
+        return 2
+    try:
+        raw = K.extract_json(result)
+    except ValueError as e:
+        with open(os.path.join(home, "_incr_classify.raw.txt"), "w", encoding="utf-8") as f:
+            f.write(result)
+        sys.stderr.write("[kb] 増分分類: JSON 抽出失敗(%s) -> 生出力を保存\n" % e)
+        return 2
+
+    # 2) 新領域を登録
+    for nt in (raw.get("new_technologies") or []):
+        if not isinstance(nt, dict):
+            continue
+        slug = K.slugify(nt.get("slug") or nt.get("title") or "")
+        if not slug or slug in bymap:
+            continue
+        t = {"slug": slug, "title": (nt.get("title") or slug).strip(),
+             "category": (nt.get("category") or "concept").strip(),
+             "related": [K.slugify(r) for r in (nt.get("related") or []) if r],
+             "sources": []}
+        techs.append(t)
+        bymap[slug] = t
+
+    # 3) 割り当てを反映し、領域ごとの「今回追加された digest」を集計
+    added_by_slug = {}
+    for a in (raw.get("assignments") or []):
+        if not isinstance(a, dict):
+            continue
+        did = a.get("id")
+        if did not in by_id or did not in set(new_ids):
+            continue
+        for s in (a.get("slugs") or []):
+            slug = K.slugify(s)
+            t = bymap.get(slug)
+            if not t:  # 未知 slug を参照していたら最小定義で作る（防御的）
+                t = {"slug": slug, "title": slug, "category": "concept",
+                     "related": [], "sources": []}
+                techs.append(t)
+                bymap[slug] = t
+            if did not in t["sources"]:
+                t["sources"].append(did)
+            added_by_slug.setdefault(slug, [])
+            if did not in added_by_slug[slug]:
+                added_by_slug[slug].append(did)
+
+    # 4) 影響を受けた領域のみノート更新
+    template = K.load_template("tech_note")
+    updated_cnt, created_cnt, failed = 0, 0, 0
+    for slug in sorted(added_by_slug):
+        t = bymap[slug]
+        added_srcs = [by_id[i] for i in added_by_slug[slug] if i in by_id]
+        out_path = os.path.join(notes_dir, "%s.md" % slug)
+        if os.path.exists(out_path):
+            with open(out_path, "r", encoding="utf-8") as f:
+                existing_note = f.read()
+            prompt = build_merge_prompt(t, existing_note, added_srcs, updated)
+            mode = "更新"
+        else:
+            # ノートが無い（新領域 or 消失）→ その領域の全 sources から新規生成
+            all_srcs = [by_id[i] for i in t["sources"] if i in by_id]
+            prompt = build_note_prompt(t, all_srcs or added_srcs, template)
+            mode = "新規"
+        sys.stderr.write("[kb] 増分%s: %s (+%d digest) 生成中...\n" % (mode, slug, len(added_srcs)))
+        ok, result = K.run_claude(prompt, timeout=NOTE_TIMEOUT)
+        if _write_note_guarded(out_path, ok, result):
+            if mode == "更新":
+                updated_cnt += 1
+            else:
+                created_cnt += 1
+        else:
+            with open(out_path + ".prompt.txt", "w", encoding="utf-8") as f:
+                f.write(prompt)
+            sys.stderr.write("[kb] 増分%s 失敗(%s): %s -> プロンプトを保存\n"
+                             % (mode, slug, result if not ok else "非ノート出力"))
+            failed += 1
+
+    # 5) seen を全新規 digest で更新（未割当も含め二度と分類し直さない）し、状態・index を保存
+    seen |= set(new_ids)
+    save_state(home, techs, seen, updated)
+    idx = write_index(home, note_subdir, techs, updated)
+    skipped = len(techs) - len(added_by_slug)
+    sys.stderr.write("[kb] 増分完了: 更新=%d 新規=%d 失敗=%d スキップ=%d / index=%s\n"
+                     % (updated_cnt, created_cnt, failed, skipped, idx))
+    sys.stderr.write("[kb] ナレッジベース: %s\n" % home)
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # 引数
 # ---------------------------------------------------------------------------
 
 def parse_args(argv):
     opts = {"out": None, "since": None, "until": None, "project": None,
             "limit": None, "dry_run": False, "taxonomy_only": False,
-            "include_unclassified": None, "from_taxonomy": None}
+            "include_unclassified": None, "from_taxonomy": None, "rebuild": False}
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -307,6 +579,8 @@ def parse_args(argv):
             opts["out"] = argv[i + 1]; i += 2; continue
         if a == "--from-taxonomy":
             opts["from_taxonomy"] = argv[i + 1]; i += 2; continue
+        if a == "--rebuild":
+            opts["rebuild"] = True; i += 1; continue
         if a == "--since":
             opts["since"] = argv[i + 1]; i += 2; continue
         if a == "--until":
@@ -376,7 +650,7 @@ def main():
 
     import json as _json
 
-    # ---- パスA をスキップして保存済みタクソノミーを再利用 ----
+    # ---- パスA をスキップして保存済みタクソノミーを再利用（全ノート再生成） ----
     if opts["from_taxonomy"]:
         with open(opts["from_taxonomy"], "r", encoding="utf-8") as f:
             saved = _json.load(f)
@@ -386,9 +660,17 @@ def main():
             return 2
         sys.stderr.write("[kb] タクソノミー再利用: %s（技術領域 %d 件）\n"
                          % (opts["from_taxonomy"], len(techs)))
-        return run_pass_b(home, note_subdir, digests, techs, opts, updated)
+        rc = run_pass_b(home, note_subdir, digests, techs, opts, updated)
+        save_state(home, techs, valid_ids, updated)  # 以降は増分更新に乗せる
+        return rc
 
-    # ---- パスA: タクソノミー ----
+    # ---- 増分更新: 既存状態があり、--rebuild / --taxonomy-only / --dry-run でないとき ----
+    state = load_state(home)
+    if state and not opts["rebuild"] and not opts["taxonomy_only"] and not opts["dry_run"]:
+        sys.stderr.write("[kb] 既存状態を検出 -> 増分更新モード（--rebuild で全再構築）\n")
+        return run_incremental(home, note_subdir, digests, state, opts, updated)
+
+    # ---- パスA: タクソノミー（全再構築 / 初回 / --rebuild / --taxonomy-only） ----
     tax_prompt = build_taxonomy_prompt(digests)
     tax_prompt_path = os.path.join(home, "_taxonomy.prompt.txt")
     if opts["dry_run"]:
@@ -419,10 +701,8 @@ def main():
         sys.stderr.write("[kb] パスA: 有効な技術領域が 0 件。終了。\n")
         return 2
 
-    # タクソノミーを JSON で残す（再現・デバッグ・index 再生成用）
-    import json as _json
-    with open(os.path.join(home, "_taxonomy.json"), "w", encoding="utf-8") as f:
-        _json.dump({"technologies": techs, "updated": updated}, f, ensure_ascii=False, indent=2)
+    # タクソノミー＋取り込み済み digest を状態として残す（増分更新・index 再生成の土台）
+    save_state(home, techs, valid_ids, updated)
     sys.stderr.write("[kb] パスA 完了: 技術領域 %d 件\n" % len(techs))
 
     if opts["taxonomy_only"]:
