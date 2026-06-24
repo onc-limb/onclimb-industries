@@ -11,5 +11,8 @@
 # worklog: 収集した作業ログ・生成物（機密を含みうるため追跡しない）
 /worklog-data/
 
+# knowledge-base: 生成した Obsidian vault（蓄積場所。別 private リポジトリで管理する前提）
+/knowledge-base/
+
 # macOS
 .DS_Store

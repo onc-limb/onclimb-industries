@@ -1,0 +1,16 @@
+# knowledge-base スキル設定
+# 注意: このパーサは "key: value" のスカラのみ対応（ブロック/フロー記法・ネスト不可）。
+#       値に # は含めないこと。
+
+# 出力先(vault)。相対パスならリポジトリ直下を基準にする。絶対パスも可。
+# --out 引数 / KB_HOME 環境変数が優先される。
+# 既定はリポジトリ直下 knowledge-base/（.gitignore 済み。別 private リポジトリへ移す前提）。
+output_dir: knowledge-base
+
+# 技術ノートを置くサブディレクトリ名（vault 内）。
+note_subdir: tech
+
+# _unclassified の tech digest も取り込むか。
+# 技術知見は本来プロジェクト非依存で転用可能なので既定 true。
+# 機密混入が気になる場合や精度を上げたい場合は false（--no-unclassified でも上書き可）。
+include_unclassified: true
