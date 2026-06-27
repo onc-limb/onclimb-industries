@@ -35,5 +35,7 @@ worklog の規約（`.claude/skills/worklog/config/redaction.yaml`）を**定義
 
 ## roster / glossary の扱い
 
-- `config/roster.yaml`（過去参加者名簿）は固有名を含むため、**共有ファイル自体を公開対象から外す**。
-- `config/glossary.yaml`（誤変換辞書）は一般語が主だが、顧客固有語が混じりうるので同様に扱う。
+- 実データ `giziroku/config/roster.yaml`（過去参加者名簿）は固有名を含むため、**git 管理外**で運用する。
+- 実データ `giziroku/config/glossary.yaml`（誤変換辞書）も顧客固有語が混じりうるので同様に git 管理外。
+- 同梱の `config/glossary.example.yaml` / `config/roster.example.yaml` は汎用シード（機密なし）で、
+  これだけを git 追跡する。実データが無ければ雛形をコピーして初期化する。

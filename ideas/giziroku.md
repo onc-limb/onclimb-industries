@@ -255,20 +255,27 @@ related: [work-log-system-instructions.md, knowledge-base-idea.md, problem-essen
       dialogue_flow.md  # Phase B の確認 4 点と質問文
       masking.md        # マスキング種別 (worklog の規約を流用、運用は独立)
       extraction.md     # 決定/TODO/保留の判定基準
-    config/
-      glossary.yaml     # 誤変換 → 正規表記。★プロジェクト横断で共有・蓄積する資産
-      roster.yaml       # 過去参加者名簿。★プロジェクト横断で共有。Speaker 推定の候補に使う
+    config/                  # 自己進化資産の【雛形】(git 追跡・機密なし)
+      glossary.example.yaml  # 誤変換辞書の汎用シード
+      roster.example.yaml    # 参加者名簿の空テンプレ
     scripts/
       parse_transcript.py   # 話者集計・抜粋・タイムブロック分割・話者なし推定
 
-  giziroku/              # ★このスキル専用の出力先 (プロジェクトルート直下、worklog-data とは別)
-    YYYY-MM-DD_<会議タイトル>_議事録.md
+  giziroku/              # ★このスキル専用のデータ置き場 (git 管理外、worklog-data とは別)
+    transcripts/          # 入力 (未処理の文字起こし)
+    processed/            # 退避 (議事録化が済んだ原文。削除しない)
+    minutes/              # 出力 (YYYY-MM-DD_<会議タイトル>_議事録.md)
+    config/               # 自己進化の【実データ】(蓄積先。機密を含むため git 管理外)
+      glossary.yaml       # 誤変換 → 正規表記。★プロジェクト横断で共有・蓄積
+      roster.yaml         # 過去参加者名簿。★横断共有。Speaker 推定の候補に使う
   ```
 - worklog とは**完全に別系統**として実装する（収集・分類・アーカイブのパイプラインを共有しない）。
 - 話者集計・タイムブロック分割・話者なし推定は決定的処理として可能な範囲を script 化
   (`parse_transcript.py`)。構造抽出・要約・補正判断・最終的な話者推定は LLM が担当。
-- `glossary.yaml` / `roster.yaml` は **プロジェクト横断で 1 つを共有**し、使うほど精度が上がる資産。
-  機密 (固有名) は roster に入りうるため、共有ファイル自体は公開対象から外す前提で扱う。
+- `glossary` / `roster` は **プロジェクト横断で 1 つを共有**し、使うほど精度が上がる資産。
+  機密 (固有名) は roster に入りうるため、**実データは `giziroku/config/`（git 管理外）に置き**、
+  スキル同梱は `config/*.example.yaml`（汎用シード・機密なし）のみを git 追跡する。
+  読み込みは雛形＋実データをマージし、追記（自己進化）は実データ側だけに行う。
 - 入力形式の揺れ（Plaud / Teams で話者ラベル・タイムスタンプ書式が違う）を parser で吸収する。
 
 ---
