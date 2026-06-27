@@ -35,6 +35,13 @@ projects:
       - climbinsight
     keywords: []
 
+  - id: personal-dashboard
+    path_globs:
+      - /Users/satoshi-onga/Documents/personal-dashboard
+    repos:
+      - personal-dashboard
+    keywords: []
+
   - id: budget-bot
     path_globs:
       - /Users/satoshi-onga/Documents/account/budget-bot

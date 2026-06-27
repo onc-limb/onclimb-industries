@@ -43,8 +43,29 @@ SKILL=/Users/satoshi-onga/Documents/portfolio/jarvis/.claude/skills/worklog
 TODAY=$(date +%F)
 bash   "$SKILL/bin/collect.sh"                 # 1) 取りこぼし収集（冪等）
 python3 "$SKILL/bin/classify.py" "$TODAY"      # 2) 当日分を分類
-python3 "$SKILL/bin/summarize.py" "$TODAY"     # 3) 2形式の整理情報を生成
+python3 "$SKILL/bin/suggest_projects.py" "$TODAY"  # 3) 未分類に未登録プロジェクトが無いか調査
+python3 "$SKILL/bin/summarize.py" "$TODAY"     # 4) 2形式の整理情報を生成
 ```
+
+### 未分類プロジェクトの調査と登録（classify と summarize の間に挟む）
+
+classify は「誤分類より未分類優先」のため、`config/projects.yaml` に未登録のプロジェクトは
+`_unclassified` に落ちる。放置すると本来別プロジェクトの作業が未分類に埋もれ、報告の取りこぼしになる。
+そこで **summarize の前に未分類を調査し、新しいプロジェクトなら projects.yaml に登録して再分類する**。
+
+1. `suggest_projects.py [date]` を実行する。`_unclassified` を cwd / git リポジトリ単位で集計し、
+   projects.yaml 未登録の候補（`suggested_id` / `path_glob` / `repo` / `entries` / `sample_bodies`）を JSON で返す。
+2. 候補があれば **Claude が調査する**: 候補の `cwd`（や `path_glob`）の README / package.json / git remote 等を
+   読み、適切な `id`（顧客名は避け汎用 id・マスキング前提）を判断する。`id_conflict: true` は既存 id と
+   衝突するので別名にする。`is_git_repo: false` や一過性の作業ディレクトリは登録を見送ってよい。
+3. **ユーザーに確認**（`AskUserQuestion`）: 「この cwd を `<id>` として登録してよいか / 見送るか」。
+   勝手に登録せず、id の妥当性を必ず確認する。
+4. 合意したら `config/projects.yaml` に 1 ブロック追記（`id` / `path_globs` / `repos` / `keywords`）。
+5. `classify.py [date]` を再実行して `_unclassified` から正しい `project_id` へ振り直す。
+6. その後 `summarize.py` に進む（正しいプロジェクト名で digest が生成される）。
+
+> 既に digest を生成済みの日を後から登録し直した場合は、旧 `_unclassified`（や誤った id）の
+> digest が残る。`classify.py [date]` 再実行後に該当日の digest を作り直し、古い digest は削除する。
 
 - 生成物は `worklog-data/digests/{project,tech}/<project>_<date>.md`（＝報告書の素材となる整理情報）。
   各 digest は結論層（TL;DR/サマリ）と詳細層を両方持ち、用途別に出し分けられるよう設計してある:
@@ -64,6 +85,10 @@ python3 "$SKILL/bin/summarize.py" "$TODAY"     # 3) 2形式の整理情報を生
   - 複数ソース（CLI / デスクトップ Code タブ）の生ログを構造抽出・マスキングして `raw/` へ。冪等。
 - **分類のみ**: `python3 "$SKILL/bin/classify.py" [YYYY-MM-DD]`
   - cwd → git リポジトリ名 → 本文キーワードの順で `project_id` 確定。不明は `_unclassified`（誤分類より未分類優先）。
+- **未分類の調査（プロジェクト登録の提案）**: `python3 "$SKILL/bin/suggest_projects.py" [YYYY-MM-DD]`
+  - `_unclassified` を cwd / git リポジトリ単位で集計し、projects.yaml 未登録の候補を JSON で返す（**読み取り専用**）。
+  - 出力を受けて Claude が候補を調査・確認し、ユーザー合意のうえ `config/projects.yaml` を編集して再分類する。
+    手順は「標準フロー」の『未分類プロジェクトの調査と登録』を参照。
 - **整理のみ**: `python3 "$SKILL/bin/summarize.py" [YYYY-MM-DD] [project] [--formats project,tech] [--dry-run]`
   - `claude -p` をヘッドレス実行し `digests/{project,tech}/` に整理情報を生成。`claude` が無い/失敗時はプロンプトを `.prompt.txt` に保存。
 - **退避**: `bash "$SKILL/bin/archive.sh" [YYYY-MM] [--force] [--check]`
