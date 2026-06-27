@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<!--
+  Stage2 日次報告スライド テンプレート (report-deck)
+  - 配置: report-deck/<YYYY-MM>/<YYYY-MM-DD>.html
+  - 単一の自己完結 HTML。外部 CDN / フレームワーク依存なし。メール添付でそのまま開ける。
+  - 構成: 表紙 -> サマリ -> プロジェクト/タスクごと（1案件1スライド）。
+  - 差し込み規約(render_deck.py が処理):
+      ・二重波括弧 date / reporter  ... 表紙・タイトル
+      ・HL_START 〜 HL_END の間      ... サマリ（li を 3 点以内で並べる）
+      ・PROJECT_SLIDES ここから 〜 ここまで の間 ... 案件用 section を案件数だけ挿入
+  - 文章は「非エンジニア向け・専門用語なし」で生成すること（用語変換は生成側の責務）。
+  - 以下はサンプル内容入り。実体生成時はサンプル section を差し替える。
+  - 注意: このコメント内に「半角の閉じ角括弧つきコメント終端」を書かないこと（コメントが途中で閉じる）。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{date}} 作業報告</title>
+<style>
+  :root{
+    --ink:#1b2a38;        /* 本文（濃い寒色グレー） */
+    --sub:#5b6b78;        /* 補足 */
+    --accent:#1f3a5f;     /* 濃紺・主アクセント */
+    --accent2:#2c6e8f;    /* ティールブルー・副アクセント（見出し帯） */
+    --panel:#ffffff;      /* カード地色 */
+    --panel-line:#cfdbe6; /* カード罫線 */
+    --page1:#eef3f8;      /* 背景グラデ上（淡い寒色） */
+    --page2:#dde7f0;      /* 背景グラデ下 */
+    --ask-bg:#f3f7fb;     /* ご相談ボックス地 */
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:linear-gradient(160deg,var(--page1),var(--page2));
+    background-attachment:fixed;
+    color:var(--ink);
+    font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+    font-size:18px;
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* 1スライド = 1画面。アクティブな section だけ表示 */
+  .slide{
+    display:none;
+    min-height:100vh;
+    padding:6vh 8vw;
+    flex-direction:column;
+    justify-content:center;
+  }
+  .slide.active{display:flex;}
+
+  /* 表紙 */
+  .cover{justify-content:center;align-items:flex-start;}
+  .cover .bar{width:64px;height:6px;background:var(--accent2);margin-bottom:1.6rem;border-radius:3px;}
+  .cover h1{font-size:2.6rem;font-weight:700;letter-spacing:.02em;color:var(--accent);}
+  .cover .meta{margin-top:1.1rem;color:var(--sub);font-size:1.1rem;}
+
+  /* スライド見出し */
+  .slide h2{
+    font-size:1.65rem;font-weight:700;color:var(--accent);
+    padding-bottom:.45rem;margin-bottom:1.4rem;
+    border-bottom:3px solid var(--accent2);
+    display:inline-block;
+  }
+  .slide .label{
+    display:inline-block;color:#fff;background:var(--accent2);
+    font-size:.78rem;font-weight:600;letter-spacing:.1em;
+    padding:.15em .7em;border-radius:3px;margin-bottom:.7rem;
+  }
+
+  /* リスト */
+  ul{list-style:none;}
+  ul li{position:relative;padding-left:1.3em;margin:.5rem 0;}
+  ul li::before{content:"—";position:absolute;left:0;color:var(--accent2);}
+
+  /* 項目ごとの枠（カード） */
+  .group{
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-left:4px solid var(--accent2);
+    border-radius:6px;
+    padding:.9rem 1.2rem;
+    margin:.9rem 0;
+  }
+  .group .h{
+    font-weight:700;color:var(--accent);font-size:.98rem;
+    margin-bottom:.4rem;letter-spacing:.02em;
+  }
+  /* 「ご相談」枠は注意を引くため地色と左罫線を変える（寒色のまま濃いめ） */
+  .group.ask{background:var(--ask-bg);border-left-color:var(--accent);}
+  .group.ask .h{color:var(--accent);}
+
+  /* サマリのカードは横並びにせず1枚で大きく */
+  .summary .group{border-left-width:6px;}
+
+  /* ステータスは色アイコンでなく語で示す */
+  .status{
+    display:inline-block;font-size:.8rem;font-weight:600;
+    color:#fff;background:var(--accent2);
+    border-radius:3px;padding:.05em .5em;margin-right:.5em;
+    vertical-align:.05em;
+  }
+  .status.done{background:var(--accent);}
+
+  /* フッタ（ページ送り表示） */
+  .nav{
+    position:fixed;right:2.2vw;bottom:2.2vh;
+    color:var(--sub);font-size:.85rem;user-select:none;
+    background:rgba(255,255,255,.7);padding:.1em .6em;border-radius:4px;
+  }
+
+  /* 印刷: 1スライド = 1ページ、全 section 表示 */
+  @media print{
+    body{background:#fff;}
+    .slide{display:flex!important;min-height:auto;page-break-after:always;padding:6vh 8vw;}
+    .nav{display:none;}
+    body{font-size:14px;}
+  }
+</style>
+</head>
+<body>
+
+  <!-- 表紙 -->
+  <section class="slide cover active">
+    <div class="bar"></div>
+    <h1>{{date}} 作業報告</h1>
+    <div class="meta">担当: {{reporter}}</div>
+  </section>
+
+  <!-- サマリ -->
+  <section class="slide summary">
+    <h2>今日の要点</h2>
+    <div class="group">
+      <!-- HL_START : render_deck.py がこの2マーカー間を差し替える。間のサンプルはプレビュー用 -->
+      <ul>
+        <li>会員向けサービスの「ログイン機能」が使える状態になりました。</li>
+        <li>もう一方のサービスで、画面表示の不具合の原因を調べ、直す方針が固まりました。</li>
+        <li>進め方について1件、ご判断いただきたいことがあります。</li>
+      </ul>
+      <!-- HL_END -->
+    </div>
+  </section>
+
+  <!-- PROJECT_SLIDES ここから（案件ごとに section を複製） -->
+  <section class="slide">
+    <span class="label">案件</span>
+    <h2>会員向けサービス</h2>
+
+    <div class="group">
+      <div class="h">やったこと</div>
+      <ul>
+        <li><span class="status done">完了</span>会員がログインできる仕組みを用意しました。</li>
+        <li><span class="status">進行中</span>会員証の画像を読み取って保存する機能を作成中です。</li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <div class="h">今どうなっているか</div>
+      <ul>
+        <li>ログインは問題なく動く状態です。会員証まわりは今週中に形になる見込みです。</li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <div class="h">この先</div>
+      <ul>
+        <li>会員証の保存機能を仕上げ、最初の画面を公開できる状態に進めます。</li>
+      </ul>
+    </div>
+
+    <div class="group ask">
+      <div class="h">ご相談</div>
+      <ul>
+        <li>なし</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="slide">
+    <span class="label">案件</span>
+    <h2>もう一方のサービス</h2>
+
+    <div class="group">
+      <div class="h">やったこと</div>
+      <ul>
+        <li><span class="status done">完了</span>画面表示が崩れる不具合の原因を特定しました。</li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <div class="h">今どうなっているか</div>
+      <ul>
+        <li>原因がわかり、直す方針まで決まっています。修正はこれからです。</li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <div class="h">この先</div>
+      <ul>
+        <li>決まった方針で修正し、表示が正しくなるか確認します。</li>
+      </ul>
+    </div>
+
+    <div class="group ask">
+      <div class="h">ご相談</div>
+      <ul>
+        <li>修正にあたり、対応の優先順位をご相談させてください。</li>
+      </ul>
+    </div>
+  </section>
+  <!-- PROJECT_SLIDES ここまで -->
+
+  <div class="nav"><span id="cur">1</span> / <span id="total">1</span></div>
+
+<script>
+  // 最小限のページ送り（外部依存なし）: 矢印キー / クリックで section を切替
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0;
+  document.getElementById('total').textContent = slides.length;
+  function show(n){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function(s, k){ s.classList.toggle('active', k === i); });
+    document.getElementById('cur').textContent = i + 1;
+  }
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'ArrowRight' || e.key === 'PageDown') show(i + 1);
+    if(e.key === 'ArrowLeft'  || e.key === 'PageUp')   show(i - 1);
+  });
+  document.addEventListener('click', function(){ show(i + 1); });
+  show(0);
+</script>
+</body>
+</html>
