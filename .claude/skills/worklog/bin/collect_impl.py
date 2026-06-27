@@ -188,6 +188,7 @@ def main():
         if not root or not os.path.isdir(root):
             sys.stderr.write("[collect] パス無し(skip): %s\n" % root)
             continue
+        src_tag = src.get("tag")  # 明示タグがあれば source として優先する
         for fpath in iter_cli_files(root):
             files_seen += 1
             start = cursor.get(fpath, 0)
@@ -208,7 +209,7 @@ def main():
                 except Exception:
                     continue
                 sid = obj.get("sessionId")
-                source = "desktop" if sid in desktop else "cli"
+                source = src_tag or ("desktop" if sid in desktop else "cli")
                 for e in extract_entries(obj, source, redactor):
                     date = (e["ts"] or "")[:10] or "0000-00-00"
                     if not date or date == "0000-00-00":

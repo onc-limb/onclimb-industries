@@ -30,4 +30,21 @@ sources:
     type: desktop_meta
     path: ${AppData}/Claude/claude-code-sessions
 
+  # --- デスクトップアプリ ローカルエージェント（Cowork）の会話本体 ------
+  # ローカルエージェントモードの会話*本体*は ~/.claude/projects ではなく、
+  # 各セッション配下に埋め込まれた .claude/projects/ に CLI と同じ JSONL 形式で
+  # 保存される（cli source では拾えない領域）。再帰 glob で *.jsonl を収集する。
+  # tag を付けたソースのエントリは source=<tag> として記録される。
+  - id: desktop-agent-macos
+    os: macos
+    type: cli_jsonl
+    tag: desktop
+    path: ~/Library/Application Support/Claude/local-agent-mode-sessions
+
+  - id: desktop-agent-windows
+    os: windows
+    type: cli_jsonl
+    tag: desktop
+    path: ${AppData}/Claude/local-agent-mode-sessions
+
 # Web 版（claude.ai）はローカルにファイルが存在しないため収集対象外（仕様上の制約）。
