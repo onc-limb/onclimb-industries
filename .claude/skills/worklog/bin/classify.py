@@ -71,9 +71,11 @@ def main():
                 except Exception:
                     continue
                 sid = e.get("session_id") or "_nosession"
-                s = sessions.setdefault(sid, {"cwd": None, "bodies": [], "entries": []})
+                s = sessions.setdefault(sid, {"cwd": None, "source": None, "bodies": [], "entries": []})
                 if e.get("cwd") and not s["cwd"]:
                     s["cwd"] = e["cwd"]
+                if e.get("source") and not s["source"]:
+                    s["source"] = e["source"]
                 if e.get("kind") in ("instruction", "response") and len(s["bodies"]) < 30:
                     s["bodies"].append(e.get("body") or "")
                 s["entries"].append(e)
@@ -89,7 +91,12 @@ def main():
             return out_handles[pid]
 
         for sid, s in sessions.items():
-            pid, reason = classifier.classify(s["cwd"], s["bodies"])
+            # Claude Desktop（ローカルエージェント）のログは cwd が特殊パスで
+            # プロジェクト分類が困難なため、専用の desktop-chat に固定する。
+            if s["source"] == "desktop":
+                pid, reason = "desktop-chat", "source=desktop"
+            else:
+                pid, reason = classifier.classify(s["cwd"], s["bodies"])
             out_pid = "_unclassified" if pid == "未分類" else pid
             fh = handle_for(out_pid)
             for e in s["entries"]:
