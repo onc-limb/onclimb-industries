@@ -1,6 +1,6 @@
 ---
 name: high-dividend-stock-screener
-status: draft  # draft | refining | ready | building | shipped | dropped
+status: shipped  # draft | refining | ready | building | shipped | dropped
 created: 2026-06-27
 updated: 2026-06-27
 tags: [finance, stock, dividend, japan, screening, research, web, incremental]
@@ -275,7 +275,19 @@ related: [work-log-system-instructions.md, knowledge-base-idea.md]
 
 ## 14. 実装リンク
 
-(status が building / shipped になったら追記)
-
-- スキルディレクトリ: `../high-dividend-stock-screener/`
-- 関連 PR / commit:
+- スキルディレクトリ: `.claude/skills/high-dividend-stock-screener/`
+  - `SKILL.md` … 起動条件・標準フロー(10 手順)・免責・自己進化スコープ。
+  - `bin/hdss_lib.py` … パス解決(STOCK_DATA→repo/stock-data) / 最小 YAML パーサ / 証券コード正規化(5桁末尾0→4桁) /
+    除外判定(REIT 等) / 台帳 JSONL 読み書き / **コア4条件の決定論的判定**(依存ゼロ)。
+  - `bin/judge.py` … 取得済み指標 JSON → コア4条件の合否(数値はスクリプトだけが評価し捏造を防ぐ)。
+  - `bin/resolve_corp.py` … **EDINET コードリスト(Edinetcode.zip)を自動 DL・突合**して証券コード→法人番号(13桁)。
+    実データで トヨタ/三菱商事/KDDI の法人番号取得を確認済み。
+  - `bin/registry.py` … 調査済み台帳 `status` / `filter`(未調査だけ抽出=重複調査防止) / `add`(合否に関わらず追記・重複排除)。
+  - `config/screener.yaml` … しきい値(利回り4%/性向50%/3期/減配0回)・除外パターン・batch_size。
+  - `references/{screening_rules,site_structure,review_checklist}.md` … 判定軸定義 / 取得元メモ / レビュー観点(自己進化対象)。
+  - `templates/list.md` … おすすめリスト雛形(免責・合格表・不合格参考・Claude レビュー欄・続きの回し方)。
+- データ置き場: リポジトリ直下 `stock-data/`(`registry/screened.jsonl` / `lists/<date>.md` / `edinet/`)。
+  `STOCK_DATA` で上書き可。root `.gitignore` で `/stock-data/` を追跡対象外にした。
+- 決定事項の実装反映: コア4条件は `judge.py` で決定論評価、法人番号は EDINET 本筋(国税庁 API はフォールバックとして手順に明記)、
+  調査済みは法人番号台帳でインクリメンタル、リスト末尾に Claude レビュー、免責を毎回明示。
+- 関連 commit: (このスキル追加コミットで追記)

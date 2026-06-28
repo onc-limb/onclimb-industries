@@ -1,0 +1,469 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""high-dividend-stock-screener 共通ライブラリ（依存ゼロ）。
+
+役割:
+  - データ置き場（台帳 / リスト / EDINET キャッシュ）のパス解決
+  - 設定（screener.yaml）のロード（最小 YAML サブセットパーサ）
+  - 調査済み台帳（JSONL）の読み書き
+  - 銘柄区分の除外判定（REIT / 投資法人 / インフラファンド 等）
+  - 健全性コア条件の決定論的判定
+
+設計方針:
+  worklog / knowledge-base スキルと同じリポジトリに同居する前提だが、
+  cross-skill 結合を避けるため他スキルの lib には依存しない（必要最小限を自前で持つ）。
+  数値の捏造を構造的に防ぐため、「判定」はこのスクリプト側で決定論的に行い、
+  LLM は「取得・名寄せ・レビュー講評」に専念する（SKILL.md 参照）。
+"""
+import json
+import os
+import re
+import sys
+from datetime import datetime, timedelta, timezone
+
+JST = timezone(timedelta(hours=9))
+
+
+# ---------------------------------------------------------------------------
+# パス解決
+# ---------------------------------------------------------------------------
+
+def skill_root():
+    """このスクリプト群が入るスキルディレクトリ(=bin/ の親)。config/ references/ の場所。"""
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+def find_repo_root(start):
+    d = os.path.abspath(start)
+    for _ in range(60):
+        if os.path.isdir(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            break
+        d = parent
+    return None
+
+
+def data_home():
+    """台帳・リスト・EDINET キャッシュを置く場所。
+    優先: 環境変数 STOCK_DATA
+          → スキルが属する git リポジトリ直下の stock-data/
+          → ~/stock-data
+    コード/設定とは分離し、生成データをスキルディレクトリの外に置く（worklog の方式を踏襲）。"""
+    env = os.environ.get("STOCK_DATA")
+    if env:
+        return os.path.abspath(os.path.expanduser(env))
+    repo = find_repo_root(skill_root())
+    if repo:
+        return os.path.join(repo, "stock-data")
+    return os.path.expanduser("~/stock-data")
+
+
+def registry_path():
+    return os.path.join(data_home(), "registry", "screened.jsonl")
+
+
+def lists_dir():
+    return os.path.join(data_home(), "lists")
+
+
+def edinet_dir():
+    return os.path.join(data_home(), "edinet")
+
+
+def references_dir():
+    return os.path.join(skill_root(), "references")
+
+
+def templates_dir():
+    return os.path.join(skill_root(), "templates")
+
+
+def ensure_dir(path):
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def today_jst():
+    # Python スクリプトなので datetime.now は利用可（Workflow JS の制約とは無関係）
+    return datetime.now(JST).strftime("%Y-%m-%d")
+
+
+# ---------------------------------------------------------------------------
+# 最小 YAML サブセットパーサ（screener.yaml 用）
+# 対応: ブロックスタイルのマップ / シーケンス / スカラ。フロー記法・複数行スカラは未対応。
+# ---------------------------------------------------------------------------
+
+def _strip_comment(s):
+    out = []
+    q = None
+    prev = " "
+    for c in s:
+        if q:
+            out.append(c)
+            if c == q:
+                q = None
+        else:
+            if c in ('"', "'"):
+                q = c
+                out.append(c)
+            elif c == "#" and prev in (" ", "\t"):
+                break
+            else:
+                out.append(c)
+        prev = c
+    return "".join(out).rstrip()
+
+
+def _parse_scalar(s):
+    s = s.strip()
+    if s == "":
+        return None
+    if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+        return s[1:-1]
+    if len(s) >= 2 and s[0] == "'" and s[-1] == "'":
+        return s[1:-1]
+    low = s.lower()
+    if low in ("null", "~"):
+        return None
+    if low == "true":
+        return True
+    if low == "false":
+        return False
+    if re.fullmatch(r"-?\d+", s):
+        return int(s)
+    if re.fullmatch(r"-?\d+\.\d+", s):
+        return float(s)
+    return s
+
+
+def _indent_of(line):
+    return len(line) - len(line.lstrip(" "))
+
+
+def _prepare_lines(text):
+    out = []
+    for raw in text.splitlines():
+        stripped = _strip_comment(raw)
+        if stripped.strip() == "":
+            continue
+        out.append((_indent_of(stripped), stripped.strip()))
+    return out
+
+
+def _parse_block(lines, i):
+    if i >= len(lines):
+        return None, i
+    _, content = lines[i]
+    if content == "-" or content.startswith("- "):
+        return _parse_seq(lines, i, lines[i][0])
+    return _parse_map(lines, i, lines[i][0])
+
+
+def _parse_map(lines, i, indent):
+    d = {}
+    while i < len(lines):
+        ci, content = lines[i]
+        if ci != indent:
+            break
+        key, sep, rest = content.partition(":")
+        if sep == "":
+            break
+        key = key.strip()
+        rest = rest.strip()
+        if rest == "":
+            if i + 1 < len(lines) and lines[i + 1][0] > indent:
+                val, i = _parse_block(lines, i + 1)
+            else:
+                val, i = None, i + 1
+            d[key] = val
+        else:
+            d[key] = _parse_scalar(rest)
+            i += 1
+    return d, i
+
+
+def _parse_seq(lines, i, indent):
+    arr = []
+    while i < len(lines):
+        ci, content = lines[i]
+        if ci != indent or not (content == "-" or content.startswith("- ")):
+            break
+        item = content[1:].strip()
+        if item == "":
+            if i + 1 < len(lines) and lines[i + 1][0] > indent:
+                val, i = _parse_block(lines, i + 1)
+            else:
+                val, i = None, i + 1
+            arr.append(val)
+        else:
+            arr.append(_parse_scalar(item))
+            i += 1
+    return arr, i
+
+
+def yaml_load(text):
+    lines = _prepare_lines(text)
+    if not lines:
+        return {}
+    val, _ = _parse_block(lines, 0)
+    return val
+
+
+def load_config():
+    path = os.path.join(skill_root(), "config", "screener.yaml")
+    if not os.path.exists(path):
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        cfg = yaml_load(f.read())
+    return cfg if isinstance(cfg, dict) else {}
+
+
+def config_value(cfg, key, default):
+    v = cfg.get(key)
+    return default if v is None else v
+
+
+# ---------------------------------------------------------------------------
+# 証券コードの正規化
+# ---------------------------------------------------------------------------
+
+def normalize_ticker(code):
+    """証券コードを 4 桁(英数)の正規形へ。
+    EDINET は末尾 0 付きの 5 桁(例 トヨタ 72030 / 新形式 130A0)で配布されるため、
+    5 桁なら末尾 1 文字を落として 4 桁にそろえる。Yahoo 等の 4 桁はそのまま。
+    """
+    if code is None:
+        return None
+    s = str(code).strip().upper()
+    if s == "":
+        return None
+    s = re.sub(r"\s", "", s)
+    if len(s) == 5 and s.endswith("0"):
+        return s[:4]
+    return s
+
+
+# ---------------------------------------------------------------------------
+# 銘柄区分の除外判定（REIT / 投資法人 / インフラファンド 等）
+# ---------------------------------------------------------------------------
+
+DEFAULT_EXCLUDE_NAME_PATTERNS = [
+    "投資法人",
+    "リート",
+    "ＲＥＩＴ",
+    "REIT",
+    "インフラ投資",
+    "インフラファンド",
+    "ETF",
+    "ＥＴＦ",
+    "上場投信",
+    "ETN",
+]
+
+
+def exclusion_reason(name, exclude_patterns=None):
+    """社名から除外対象(REIT 等)かどうかを判定。除外なら理由文字列、対象外なら None。
+    名称サフィックス/部分一致での一次判定。市場区分・銘柄種別が取れる場合は呼び出し側で併用する。"""
+    if not name:
+        return None
+    pats = exclude_patterns if exclude_patterns is not None else DEFAULT_EXCLUDE_NAME_PATTERNS
+    upper = name.upper()
+    for p in pats:
+        if not p:
+            continue
+        if p in name or p.upper() in upper:
+            return "name_match:%s" % p
+    return None
+
+
+# ---------------------------------------------------------------------------
+# 調査済み台帳（JSONL, 1 社 1 行, 一意キー=法人番号）
+# ---------------------------------------------------------------------------
+
+def read_registry():
+    """台帳を読み込み record の list を返す。無ければ空 list。壊れた行はスキップ。"""
+    path = registry_path()
+    if not os.path.exists(path):
+        return []
+    out = []
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                out.append(json.loads(line))
+            except Exception:
+                sys.stderr.write("[hdss] 台帳の壊れた行をスキップ: %s\n" % line[:80])
+    return out
+
+
+def registry_keys(records):
+    """重複排除に使うキー集合(法人番号 と 証券コード)を返す。"""
+    corp = set()
+    tickers = set()
+    for r in records:
+        cn = r.get("corp_number")
+        if cn:
+            corp.add(str(cn))
+        tk = normalize_ticker(r.get("ticker"))
+        if tk:
+            tickers.add(tk)
+    return corp, tickers
+
+
+def append_registry(record):
+    """1 件追記。corp_number か ticker が既存なら追記せず False を返す（重複排除）。"""
+    records = read_registry()
+    corp, tickers = registry_keys(records)
+    cn = record.get("corp_number")
+    tk = normalize_ticker(record.get("ticker"))
+    if cn and str(cn) in corp:
+        return False
+    if tk and tk in tickers:
+        return False
+    path = registry_path()
+    ensure_dir(os.path.dirname(path))
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    return True
+
+
+# ---------------------------------------------------------------------------
+# 健全性コア条件の決定論的判定
+# ---------------------------------------------------------------------------
+
+def _is_increasing(history, allow_cuts=0, tolerance=0.0):
+    """配当推移(古い→新しい)が右肩上がりか。
+    連続する期で「後 < 前 - tolerance」を減配としてカウントし、allow_cuts 以下なら True。
+    維持(同額)は減配にしない。記念配など外れ値の除外は呼び出し側の前処理に委ねる。"""
+    vals = [v for v in history if isinstance(v, (int, float))]
+    if len(vals) < 2:
+        return None, 0  # 判定不能
+    cuts = 0
+    for prev, cur in zip(vals, vals[1:]):
+        if cur < prev - tolerance:
+            cuts += 1
+    return (cuts <= allow_cuts), cuts
+
+
+def judge_company(data, cfg=None):
+    """1 社の取得済み指標から健全性コア条件を決定論的に評価し、判定結果 dict を返す。
+
+    入力 data（取れた値のみ。取れない値は省略 or null。配当/営業利益は古い→新しいの時系列）:
+      {
+        "ticker": "1234", "name": "...",
+        "yield": 4.3,                       # 配当利回り(%)
+        "payout_ratio": 38.0,               # 配当性向(%)
+        "dividend_history": [40, 42, 45, 48],
+        "op_profit_history": [120, 130, 150, 160],
+        "sources": ["url", ...]
+      }
+    出力:
+      { "passed": bool, "checks": {cond: {ok, value, detail}}, "reasons": [...],
+        "insufficient": [条件名...] }   # insufficient はデータ不足で判定不能だった条件
+    """
+    cfg = cfg or {}
+    yield_min = float(config_value(cfg, "yield_min", 4.0))
+    payout_max = float(config_value(cfg, "payout_max", 50.0))
+    min_periods = int(config_value(cfg, "min_periods", 3))
+    allow_cuts = int(config_value(cfg, "allow_dividend_cuts", 0))
+
+    checks = {}
+    reasons = []
+    insufficient = []
+
+    # 除外区分（REIT 等）。除外なら即不合格。
+    exclude_patterns = cfg.get("exclude_name_patterns")
+    ex = exclusion_reason(data.get("name"), exclude_patterns)
+    checks["not_excluded_type"] = {
+        "ok": ex is None,
+        "value": data.get("name"),
+        "detail": "除外区分に該当(%s)" % ex if ex else "REIT/投資法人/インフラF 等に非該当",
+    }
+
+    # 条件1: 利回り >= 閾値
+    y = data.get("yield")
+    if isinstance(y, (int, float)):
+        ok = y >= yield_min
+        checks["yield"] = {"ok": ok, "value": y, "detail": "利回り %.2f%% (閾値 %.2f%%)" % (y, yield_min)}
+    else:
+        checks["yield"] = {"ok": False, "value": None, "detail": "利回り未取得"}
+        insufficient.append("yield")
+
+    # 条件2: 配当が右肩上がり（減配年が allow_cuts 以下）
+    div = data.get("dividend_history") or []
+    inc, cuts = _is_increasing(div, allow_cuts=allow_cuts)
+    if inc is None:
+        checks["dividend_increasing"] = {"ok": False, "value": div, "detail": "配当推移が不足(2期未満)"}
+        insufficient.append("dividend_increasing")
+    elif len([v for v in div if isinstance(v, (int, float))]) < min_periods:
+        checks["dividend_increasing"] = {
+            "ok": False, "value": div,
+            "detail": "配当推移が %d 期未満(減配 %d 回)" % (min_periods, cuts),
+        }
+        insufficient.append("dividend_increasing")
+    else:
+        checks["dividend_increasing"] = {
+            "ok": inc, "value": div,
+            "detail": "減配 %d 回 (許容 %d 回)" % (cuts, allow_cuts),
+        }
+
+    # 条件3: 配当性向 < 上限
+    pr = data.get("payout_ratio")
+    if isinstance(pr, (int, float)):
+        ok = pr < payout_max
+        checks["payout_ratio"] = {"ok": ok, "value": pr, "detail": "配当性向 %.1f%% (上限 %.1f%%)" % (pr, payout_max)}
+    else:
+        checks["payout_ratio"] = {"ok": False, "value": None, "detail": "配当性向未取得"}
+        insufficient.append("payout_ratio")
+
+    # 条件4: 営業利益に赤字なし（直近 min_periods 期すべて黒字）
+    op = data.get("op_profit_history") or []
+    op_vals = [v for v in op if isinstance(v, (int, float))]
+    if len(op_vals) < min_periods:
+        checks["op_profit_positive"] = {
+            "ok": False, "value": op,
+            "detail": "営業利益が %d 期未満" % min_periods,
+        }
+        insufficient.append("op_profit_positive")
+    else:
+        all_pos = all(v > 0 for v in op_vals)
+        n_neg = sum(1 for v in op_vals if v <= 0)
+        checks["op_profit_positive"] = {
+            "ok": all_pos, "value": op,
+            "detail": "全黒字" if all_pos else "赤字/ゼロ %d 期" % n_neg,
+        }
+
+    passed = all(c["ok"] for c in checks.values())
+    for name, c in checks.items():
+        if not c["ok"]:
+            reasons.append("%s: %s" % (name, c["detail"]))
+
+    return {
+        "ticker": data.get("ticker"),
+        "name": data.get("name"),
+        "passed": passed,
+        "checks": checks,
+        "reasons": reasons,
+        "insufficient": insufficient,
+    }
+
+
+if __name__ == "__main__":
+    # 簡易セルフテスト
+    cfg = load_config()
+    print("[config] %s" % (list(cfg.keys()) if cfg else "（未設定 / 既定値で動作）"))
+    print("[data_home] %s" % data_home())
+    print("[normalize] 72030 -> %s / 7203 -> %s / 130A0 -> %s" % (
+        normalize_ticker("72030"), normalize_ticker("7203"), normalize_ticker("130A0")))
+    demo = {
+        "ticker": "9999", "name": "テスト株式会社", "yield": 4.5, "payout_ratio": 38.0,
+        "dividend_history": [40, 42, 45, 48], "op_profit_history": [120, 130, 150, 160],
+    }
+    res = judge_company(demo, cfg)
+    print("[judge] passed=%s reasons=%s" % (res["passed"], res["reasons"]))
+    reit = dict(demo, name="○○リート投資法人")
+    print("[judge:REIT] passed=%s" % judge_company(reit, cfg)["passed"])

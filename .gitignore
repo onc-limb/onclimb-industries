@@ -21,5 +21,8 @@
 /report-record/
 /report-deck/
 
+# high-dividend-stock-screener: 調査済み台帳・生成リスト・EDINET キャッシュ（機密/再配布不可を含みうるため追跡しない）
+/stock-data/
+
 # macOS
 .DS_Store
