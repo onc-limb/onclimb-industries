@@ -307,8 +307,12 @@ class Classifier:
     def __init__(self, cfg):
         self.projects = cfg.get("projects") or []
 
-    def classify(self, cwd, body_texts):
-        """(project_id, reason) を返す。判定不能なら ('未分類', ...)。"""
+    def known_ids(self):
+        return [p["id"] for p in self.projects if p.get("id")]
+
+    def classify_strong(self, cwd):
+        """確実な手がかり（①cwd → ②git リポジトリ名）のみで判定する。
+        ヒットすれば (project_id, reason)、なければ None を返す。"""
         cwd = cwd or ""
         # ① cwd パス一致（最優先）
         for p in self.projects:
@@ -321,13 +325,41 @@ class Classifier:
             for p in self.projects:
                 if repo in (p.get("repos") or []):
                     return p["id"], "repo:%s" % repo
-        # ③ 本文キーワード（弱い証拠）
+        return None
+
+    def classify_keyword(self, body_texts):
+        """③ 本文キーワード（弱い証拠）のみで判定する。
+        ヒットすれば (project_id, reason)、なければ None を返す。"""
         blob = "\n".join(t for t in body_texts if t)[:20000]
         for p in self.projects:
             for kw in (p.get("keywords") or []):
                 if kw and kw in blob:
                     return p["id"], "keyword:%s" % kw
+        return None
+
+    def classify(self, cwd, body_texts):
+        """(project_id, reason) を返す。判定不能なら ('未分類', ...)。
+        ①cwd → ②repo → ③keyword の順で判定する（LLM を使わない決定論版）。"""
+        hit = self.classify_strong(cwd)
+        if hit:
+            return hit
+        hit = self.classify_keyword(body_texts)
+        if hit:
+            return hit
         return "未分類", "no-match"
+
+    def project_hints(self):
+        """LLM に渡す既知プロジェクトの一覧（id + 典型パス + キーワード + 説明）。"""
+        hints = []
+        for p in self.projects:
+            hints.append({
+                "id": p.get("id"),
+                "path_globs": p.get("path_globs") or [],
+                "repos": p.get("repos") or [],
+                "keywords": p.get("keywords") or [],
+                "description": p.get("description") or "",
+            })
+        return hints
 
 
 def load_classifier():
@@ -336,6 +368,42 @@ def load_classifier():
     except FileNotFoundError:
         cfg = {}
     return Classifier(cfg or {})
+
+
+# ---------------------------------------------------------------------------
+# claude CLI（ヘッドレス）呼び出し
+# ---------------------------------------------------------------------------
+
+def claude_available():
+    """claude CLI が PATH 上にあるか。"""
+    from shutil import which
+    return which("claude") is not None
+
+
+def run_claude(prompt, model=None, timeout=600):
+    """claude -p をヘッドレス実行する。(ok, output_or_error) を返す。
+    model を指定するとそのモデル（例: "sonnet"）で実行する。"""
+    import subprocess
+    from shutil import which
+    claude = which("claude")
+    if not claude:
+        return False, "claude CLI が見つかりません"
+    cmd = [claude, "-p"]
+    if model:
+        cmd += ["--model", model]
+    cmd += ["--output-format", "text"]
+    try:
+        proc = subprocess.run(
+            cmd, input=prompt, capture_output=True, text=True, timeout=timeout,
+        )
+    except Exception as e:
+        return False, "claude 実行エラー: %s" % e
+    if proc.returncode != 0:
+        return False, "claude 異常終了(%d): %s" % (proc.returncode, (proc.stderr or "")[:500])
+    out = (proc.stdout or "").strip()
+    if not out:
+        return False, "claude 出力が空"
+    return True, out
 
 
 # ---------------------------------------------------------------------------
