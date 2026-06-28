@@ -128,7 +128,7 @@ def run_claude(prompt):
         return False, "claude CLI が見つかりません"
     try:
         proc = subprocess.run(
-            [claude, "-p", "--output-format", "text"],
+            [claude, "-p", "--model", "sonnet", "--output-format", "text"],
             input=prompt, capture_output=True, text=True, timeout=600,
         )
     except Exception as e:
