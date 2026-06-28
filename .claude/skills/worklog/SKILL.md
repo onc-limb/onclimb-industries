@@ -42,7 +42,7 @@ metadata:
 SKILL=/Users/satoshi-onga/Documents/portfolio/jarvis/.claude/skills/worklog
 TODAY=$(date +%F)
 bash   "$SKILL/bin/collect.sh"                 # 1) 取りこぼし収集（冪等）
-python3 "$SKILL/bin/classify.py" "$TODAY"      # 2) 当日分を分類
+python3 "$SKILL/bin/classify.py" "$TODAY"      # 2) 当日分を分類（①②決定論→③LLM/Sonnet→④keyword fallback）
 python3 "$SKILL/bin/suggest_projects.py" "$TODAY"  # 3) 未分類に未登録プロジェクトが無いか調査
 python3 "$SKILL/bin/summarize.py" "$TODAY"     # 4) 2形式の整理情報を生成
 ```
@@ -50,8 +50,10 @@ python3 "$SKILL/bin/summarize.py" "$TODAY"     # 4) 2形式の整理情報を生
 ### 未分類プロジェクトの調査と登録（classify と summarize の間に挟む）
 
 classify は「誤分類より未分類優先」のため、`config/projects.yaml` に未登録のプロジェクトは
-`_unclassified` に落ちる。放置すると本来別プロジェクトの作業が未分類に埋もれ、報告の取りこぼしになる。
-そこで **summarize の前に未分類を調査し、新しいプロジェクトなら projects.yaml に登録して再分類する**。
+`_unclassified` に落ちる。LLM 判定（③）でも既知プロジェクトに当てられなかった＝**未登録の新規プロジェクトの
+可能性が高い**ので、放置せず登録の要否を必ず確認する。放置すると本来別プロジェクトの作業が未分類に埋もれ、
+報告の取りこぼしになる。そこで **summarize の前に未分類を調査し、新しいプロジェクトなら projects.yaml に
+登録して再分類する**。`_unclassified` が空なら本節はスキップしてよい。
 
 1. `suggest_projects.py [date]` を実行する。`_unclassified` を cwd / git リポジトリ単位で集計し、
    projects.yaml 未登録の候補（`suggested_id` / `path_glob` / `repo` / `entries` / `sample_bodies`）を JSON で返す。
@@ -83,14 +85,18 @@ classify は「誤分類より未分類優先」のため、`config/projects.yam
 
 - **収集のみ**: `bash "$SKILL/bin/collect.sh"`
   - 複数ソース（CLI / デスクトップ Code タブ）の生ログを構造抽出・マスキングして `raw/` へ。冪等。
-- **分類のみ**: `python3 "$SKILL/bin/classify.py" [YYYY-MM-DD]`
-  - cwd → git リポジトリ名 → 本文キーワードの順で `project_id` 確定。不明は `_unclassified`（誤分類より未分類優先）。
+- **分類のみ**: `python3 "$SKILL/bin/classify.py" [YYYY-MM-DD] [--no-llm]`
+  - ①cwd → ②git リポジトリ名（決定論）→ ③LLM 判定（`claude -p`/Sonnet, ①②を外したセッションのみ）
+    → ④本文キーワード部分一致（LLM 不在/失敗/`--no-llm` 時の fallback）の順で `project_id` 確定。
+    不明は `_unclassified`（誤分類より未分類優先）。LLM は確信が低ければ「未分類」に倒す。
+  - `--no-llm`: LLM を使わず決定論+キーワードのみ（cron 無人運用・検証・オフライン時）。`claude` が
+    無ければ自動で fallback する。
 - **未分類の調査（プロジェクト登録の提案）**: `python3 "$SKILL/bin/suggest_projects.py" [YYYY-MM-DD]`
   - `_unclassified` を cwd / git リポジトリ単位で集計し、projects.yaml 未登録の候補を JSON で返す（**読み取り専用**）。
   - 出力を受けて Claude が候補を調査・確認し、ユーザー合意のうえ `config/projects.yaml` を編集して再分類する。
     手順は「標準フロー」の『未分類プロジェクトの調査と登録』を参照。
 - **整理のみ**: `python3 "$SKILL/bin/summarize.py" [YYYY-MM-DD] [project] [--formats project,tech] [--dry-run]`
-  - `claude -p` をヘッドレス実行し `digests/{project,tech}/` に整理情報を生成。`claude` が無い/失敗時はプロンプトを `.prompt.txt` に保存。
+  - `claude -p`（`--model sonnet`＝現行 Sonnet に追従）をヘッドレス実行し `digests/{project,tech}/` に整理情報を生成。`claude` が無い/失敗時はプロンプトを `.prompt.txt` に保存。
 - **退避**: `bash "$SKILL/bin/archive.sh" [YYYY-MM] [--force] [--check]`
 
 ## 退避（破壊的操作 — 必ず確認してから）

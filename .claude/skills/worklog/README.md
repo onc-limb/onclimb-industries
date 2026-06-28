@@ -35,8 +35,8 @@ Claude Code での作業（会話＋ツール操作）を自動で記録し、**
 ├── README.md
 ├── bin/
 │   ├── collect.sh / collect_impl.py   # 生JSONL を raw/ へ収集・構造抽出・マスキング
-│   ├── classify.py                    # プロジェクト×日付に分類
-│   ├── summarize.py                   # 2形式の整理情報を生成（claude -p）
+│   ├── classify.py                    # プロジェクト×日付に分類（①②決定論→③LLM/Sonnet→④keyword）
+│   ├── summarize.py                   # 2形式の整理情報を生成（claude -p / Sonnet）
 │   ├── archive.sh / archive_impl.py   # 整理済み生ログを月次 zip 退避
 │   └── worklog_lib.py                 # 共通ライブラリ（軽量YAMLパーサ含む・依存ゼロ）
 ├── config/
@@ -181,8 +181,11 @@ bash "$SKILL/bin/archive.sh" 2026-05           # 退避実行
 - **Web 版（claude.ai）は収集対象外**。ローカルにログファイルが無く、サーバ側管理のため取得できない（仕様）。
 - デスクトップアプリ Code タブのトランスクリプト実体は CLI と同じ `~/.claude/projects/` に
   `cliSessionId` で保存される。`claude-code-sessions/` 側はメタデータ（タイトル等）として参照する。
-- 整理は `claude -p`（ヘッドレス）を使う。`claude` が無い/失敗時は合成プロンプトを
+- 整理は `claude -p`（ヘッドレス・`--model sonnet`＝現行 Sonnet に追従）を使う。`claude` が無い/失敗時は合成プロンプトを
   `digests/<type>/<...>.prompt.txt` に保存するので、後から手動生成できる。
+- 分類の本文判定は `claude -p`（Sonnet）を使う。`①cwd→②git リポジトリ名`で確定しなかった
+  セッションだけ LLM に渡し、確信が低ければ「未分類」に倒す。`claude` 不在/失敗/`--no-llm` 時は
+  本文キーワード部分一致に fall back する。
 
 ---
 
