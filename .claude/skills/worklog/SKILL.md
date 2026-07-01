@@ -39,7 +39,7 @@ metadata:
 ## 標準フロー（「まとめて」の一声で当日分を整理情報まで）
 
 ```bash
-SKILL=/Users/satoshi-onga/Documents/portfolio/jarvis/.claude/skills/worklog
+SKILL=/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/worklog
 TODAY=$(date +%F)
 bash   "$SKILL/bin/collect.sh"                 # 1) 取りこぼし収集（冪等）
 python3 "$SKILL/bin/classify.py" "$TODAY"      # 2) 当日分を分類（①②決定論→③LLM/Sonnet→④keyword fallback）
@@ -78,7 +78,7 @@ classify は「誤分類より未分類優先」のため、`config/projects.yam
 - 完了後、生成された整理情報のパスと要点をユーザーに提示する。
 - 日付やプロジェクトを限定したい場合は引数を渡す:
   - 特定日・全プロジェクト: `summarize.py 2026-06-22`
-  - 特定日・特定プロジェクト: `summarize.py 2026-06-22 jarvis`
+  - 特定日・特定プロジェクト: `summarize.py 2026-06-22 onclimb-industries`
   - 形式を絞る: `summarize.py --formats project 2026-06-22`
 
 ## 個別実行

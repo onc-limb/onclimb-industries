@@ -3,7 +3,7 @@
   worklog 毎日収集 (macOS launchd)
   使い方:
     1) <SKILL> をスキルディレクトリの実パスに置換
-       例: /Users/satoshi-onga/Documents/portfolio/jarvis/.claude/skills/worklog
+       例: /Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/worklog
     2) ~/Library/LaunchAgents/ にコピー
        cp deploy/com.user.worklog.collect.plist ~/Library/LaunchAgents/
     3) ロード

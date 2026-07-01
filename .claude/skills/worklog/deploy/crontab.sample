@@ -1,7 +1,7 @@
 # worklog 毎日1回 自動収集（Linux / macOS 共通）
 # crontab -e で以下を追記する。<SKILL> はスキルディレクトリの実パスに置換すること。
 #
-#   例: /Users/satoshi-onga/Documents/portfolio/jarvis/.claude/skills/worklog
+#   例: /Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/worklog
 #
 # データ置き場は既定でリポジトリ直下の worklog-data/。変えたい場合は行頭に WORKLOG_DATA=/path を付ける。
 #

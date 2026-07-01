@@ -71,7 +71,7 @@ Claude Code での作業（会話＋ツール操作）を自動で記録し、**
 ## セットアップ
 
 `<SKILL>` はスキルディレクトリの絶対パス
-（例: `/Users/satoshi-onga/Documents/portfolio/jarvis/.claude/skills/worklog`）。
+（例: `/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/worklog`）。
 
 ### 1. 依存
 

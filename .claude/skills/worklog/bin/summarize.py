@@ -19,7 +19,7 @@
 使い方:
   bin/summarize.py                         # 全プロジェクト×全日付（classified 全体）
   bin/summarize.py 2026-06-22              # 指定日の全プロジェクト
-  bin/summarize.py 2026-06-22 jarvis       # 指定日・指定プロジェクト
+  bin/summarize.py 2026-06-22 onclimb-industries       # 指定日・指定プロジェクト
   bin/summarize.py --formats project 2026-06-22
   bin/summarize.py --dry-run ...           # claude を呼ばずプロンプトだけ生成
 

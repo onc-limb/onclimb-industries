@@ -48,7 +48,7 @@ metadata:
 ## 標準フロー（「高配当株のおすすめをリストにして」の一声で）
 
 ```bash
-SKILL=/Users/satoshi-onga/Documents/portfolio/jarvis/.claude/skills/high-dividend-stock-screener
+SKILL=/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/high-dividend-stock-screener
 TODAY=$(python3 -c "import datetime,zoneinfo;print(datetime.datetime.now(zoneinfo.ZoneInfo('Asia/Tokyo')).date())")
 python3 "$SKILL/bin/registry.py" status     # 0) 台帳の累計を確認（続きの起点）
 ```

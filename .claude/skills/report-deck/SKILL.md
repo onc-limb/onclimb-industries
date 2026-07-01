@@ -47,7 +47,7 @@ metadata:
 7. **完了提示**: 生成パス・スライド枚数・案件数を提示。ブラウザで開けば即配布できる旨を伝える。
 
 ```bash
-SKILL=/Users/satoshi-onga/Documents/portfolio/jarvis/.claude/skills/report-deck
+SKILL=/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/report-deck
 python3 "$SKILL/bin/render_deck.py" --in /path/to/payload.json     # → 出力パスを表示
 # 確認用に書き込まず標準出力へ: --stdout
 ```

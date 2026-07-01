@@ -20,7 +20,7 @@
   bin/kb_build.py                         # 全 tech digest からナレッジベースを生成
   bin/kb_build.py --out ~/vault           # 出力先を指定
   bin/kb_build.py --since 2026-06-01       # 指定日以降の digest のみ対象
-  bin/kb_build.py --project jarvis         # 指定プロジェクトの digest のみ対象
+  bin/kb_build.py --project onclimb-industries         # 指定プロジェクトの digest のみ対象
   bin/kb_build.py --limit 3                # 生成する技術ノートを先頭 N 件に制限（動作確認用）
   bin/kb_build.py --dry-run                # claude を呼ばずプロンプト/インデックスのみ出力
   bin/kb_build.py --taxonomy-only          # タクソノミー(JSON)生成まで（ノートは作らない）
@@ -44,7 +44,7 @@ NOTE_TIMEOUT = 600
 # ---------------------------------------------------------------------------
 
 def split_id(name):
-    """'jarvis_2026-06-23' -> ('jarvis', '2026-06-23')。日付が無ければ date=''。"""
+    """'onclimb-industries_2026-06-23' -> ('onclimb-industries', '2026-06-23')。日付が無ければ date=''。"""
     m = re.match(r"^(.+)_(\d{4}-\d{2}-\d{2})$", name)
     if m:
         return m.group(1), m.group(2)

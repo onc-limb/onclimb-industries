@@ -9,7 +9,7 @@
 
 使い方:
     python3 locate.py 2026-06-27            # その日の digest がある全案件
-    python3 locate.py 2026-06-27 jarvis     # 案件を限定
+    python3 locate.py 2026-06-27 onclimb-industries     # 案件を限定
 """
 import glob
 import json

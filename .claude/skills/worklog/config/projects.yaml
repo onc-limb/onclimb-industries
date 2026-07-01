@@ -13,11 +13,11 @@
 #   description: （任意）プロジェクトの一言説明。LLM 判定の精度を上げるヒントになる
 
 projects:
-  - id: jarvis
+  - id: onclimb-industries
     path_globs:
-      - /Users/satoshi-onga/Documents/portfolio/jarvis
+      - /Users/satoshi-onga/Documents/onclimb-industries
     repos:
-      - jarvis
+      - onclimb-industries
     keywords:
       - worklog
       - 作業記録
