@@ -97,6 +97,9 @@ classify は「誤分類より未分類優先」のため、`config/projects.yam
     手順は「標準フロー」の『未分類プロジェクトの調査と登録』を参照。
 - **整理のみ**: `python3 "$SKILL/bin/summarize.py" [YYYY-MM-DD] [project] [--formats project,tech] [--dry-run]`
   - `claude -p`（`--model sonnet`＝現行 Sonnet に追従）をヘッドレス実行し `digests/{project,tech}/` に整理情報を生成。`claude` が無い/失敗時はプロンプトを `.prompt.txt` に保存。
+  - tool_result（ツール実行の生出力）は情報密度が低いので先頭/末尾のみ残して圧縮する。
+  - 1 ファイルのログが上限（`MAX_LOG_CHARS`）を超える場合は、時系列のまま文字数ベースで時間帯分割し、各時間帯の整理を `## 【時間帯 i/n: HH:MM–HH:MM】` 見出しで 1 ファイルに連結する。
+  - 複数の整理を並列生成する。同時数は環境変数 `WORKLOG_SUMMARIZE_CONCURRENCY`（既定 4）で調整可能。上げるほど速いが Max プランのレート枠に当たりやすくなる。
 - **退避**: `bash "$SKILL/bin/archive.sh" [YYYY-MM] [--force] [--check]`
 
 ## 退避（破壊的操作 — 必ず確認してから）
