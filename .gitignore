@@ -1,5 +1,5 @@
-# Voice/source archives generated at the repo root
-/*-omni-archive.md
+# projects: 調査・作業用に実プロジェクトの git リポジトリを配置する場所（他リポジトリのため追跡しない）
+/projects/
 
 # worklog: 収集した作業ログ・生成物（機密を含みうるため追跡しない）
 /worklog-data/
