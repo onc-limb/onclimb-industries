@@ -31,6 +31,7 @@ import json
 import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import worklog_lib as W  # noqa: E402
@@ -38,6 +39,21 @@ import worklog_lib as W  # noqa: E402
 FORMATS = ["project", "tech"]
 OUTPUT_SUBDIR = "digests"  # 「整理された情報」の出力先（最終報告書ではない）
 MAX_LOG_CHARS = 180000  # 1 出力あたりのログ投入上限（コンテキスト保護）
+ENTRY_SEP = "\n\n"  # 1 エントリ間の区切り
+
+# tool_result（ツール実行の生出力）圧縮。情報密度が低いのに全体量の過半を
+# 占めるため、先頭 HEAD 字 + 末尾 TAIL 字だけ残して中間を省略する。これにより
+# 後述の文字数ベース分割数（= claude 呼び出し回数）が減る。末尾を残すのは、
+# コマンドの成否・変更ファイル数・エラーが末尾に出やすいため。
+TOOL_RESULT_HEAD = 400
+TOOL_RESULT_TAIL = 200
+
+# claude 並列実行の同時数。上げるほど速いが、Max プランの 5 時間レート枠に
+# 当たりやすくなる。環境変数 WORKLOG_SUMMARIZE_CONCURRENCY で調整可能。
+try:
+    CONCURRENCY = max(1, int(os.environ.get("WORKLOG_SUMMARIZE_CONCURRENCY", "4")))
+except ValueError:
+    CONCURRENCY = 4
 
 BASE_INSTRUCTION = """\
 あなたは SES エンジニアの作業ログを「報告書を書くための整理された情報」へ構造化するアシスタントです。
@@ -75,31 +91,86 @@ def load_template(name):
     return "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith(">"))
 
 
-def render_log(entries):
-    """JSONL エントリ列を人間可読な時系列テキストへ。"""
-    lines = []
-    for e in entries:
-        ts = (e.get("ts") or "")[11:19]
-        kind = e.get("kind")
-        tool = e.get("tool")
-        body = (e.get("body") or "").strip()
-        if not body:
-            continue
-        if kind == "instruction":
-            head = "[%s] 指示(user)" % ts
-        elif kind == "response":
-            head = "[%s] 応答(assistant)" % ts
-        elif kind == "tool_use":
-            head = "[%s] 操作 %s" % (ts, tool or "")
-        elif kind == "tool_result":
-            head = "[%s] 結果" % ts
-        else:
-            head = "[%s] %s" % (ts, kind)
-        lines.append("%s\n%s" % (head, body))
-    text = "\n\n".join(lines)
+def compress_tool_result(body):
+    """tool_result 本文を先頭 HEAD 字 + 末尾 TAIL 字だけ残して圧縮する。
+    中間は「…(結果の中間 N 字を省略)…」に置き換える。短ければそのまま返す。"""
+    if len(body) <= TOOL_RESULT_HEAD + TOOL_RESULT_TAIL:
+        return body
+    omitted = len(body) - TOOL_RESULT_HEAD - TOOL_RESULT_TAIL
+    return "%s\n…(結果の中間 %d 字を省略)…\n%s" % (
+        body[:TOOL_RESULT_HEAD], omitted, body[-TOOL_RESULT_TAIL:],
+    )
+
+
+def render_entry(e):
+    """1 エントリを人間可読な時系列テキストへ。空 body は None を返しスキップ対象。"""
+    ts = (e.get("ts") or "")[11:19]
+    kind = e.get("kind")
+    tool = e.get("tool")
+    body = (e.get("body") or "").strip()
+    if not body:
+        return None
+    # tool_result のみ圧縮（指示 / 応答 / tool_use は情報密度が高いので触らない）
+    if kind == "tool_result":
+        body = compress_tool_result(body)
+    if kind == "instruction":
+        head = "[%s] 指示(user)" % ts
+    elif kind == "response":
+        head = "[%s] 応答(assistant)" % ts
+    elif kind == "tool_use":
+        head = "[%s] 操作 %s" % (ts, tool or "")
+    elif kind == "tool_result":
+        head = "[%s] 結果" % ts
+    else:
+        head = "[%s] %s" % (ts, kind)
+    return "%s\n%s" % (head, body)
+
+
+def cap_text(text):
+    """1 セグメントが上限超過した場合の最後の砦。上限を超えた分を切り捨てる。"""
     if len(text) > MAX_LOG_CHARS:
-        text = text[:MAX_LOG_CHARS] + "\n\n…(ログが長いため以降を省略: 残り %d 文字)" % (len(text) - MAX_LOG_CHARS)
+        return text[:MAX_LOG_CHARS] + ENTRY_SEP + \
+            "…(ログが長いため以降を省略: 残り %d 文字)" % (len(text) - MAX_LOG_CHARS)
     return text
+
+
+def render_log(entries):
+    """JSONL エントリ列を人間可読な時系列テキストへ（上限で切り捨て）。"""
+    parts = [r for r in (render_entry(e) for e in entries) if r]
+    return cap_text(ENTRY_SEP.join(parts))
+
+
+def chunk_time_range(chunk):
+    """ブロック（エントリ列）の最初/最後のタイムスタンプ (HH:MM) を返す。"""
+    times = [t for t in ((e.get("ts") or "")[11:16] for e in chunk) if t]
+    if not times:
+        return None, None
+    return times[0], times[-1]
+
+
+def split_to_fit(entries):
+    """整形後テキストが MAX_LOG_CHARS 以下に収まるよう、時系列のままエントリ
+    境界で文字数ベースに詰めて分割する。返り値は [(chunk_entries, rendered_text), ...]。
+    各ブロックを上限近くまで充填するので、件数均等分割より分割数が減り、
+    時間帯の切れ目も少なくなる。"""
+    chunks = []
+    cur_entries, cur_parts, cur_len = [], [], 0
+    for e in entries:
+        r = render_entry(e)
+        if r is None:
+            continue
+        add = len(r) + (len(ENTRY_SEP) if cur_parts else 0)
+        if cur_parts and cur_len + add > MAX_LOG_CHARS:
+            chunks.append((cur_entries, ENTRY_SEP.join(cur_parts)))
+            cur_entries, cur_parts, cur_len = [], [], 0
+            add = len(r)
+        cur_entries.append(e)
+        cur_parts.append(r)
+        cur_len += add
+    if cur_parts:
+        chunks.append((cur_entries, ENTRY_SEP.join(cur_parts)))
+    # 単一エントリが上限超過した場合の最後の砦
+    return [(ce, cap_text(txt)) for ce, txt in chunks]
 
 
 def read_entries(path):
@@ -139,6 +210,19 @@ def run_claude(prompt):
     if not out:
         return False, "claude 出力が空"
     return True, out
+
+
+def run_claude_many(prompts):
+    """複数プロンプトを最大 CONCURRENCY 件まで同時に claude へ投げ、
+    入力順で [(ok, output_or_error), ...] を返す。"""
+    if len(prompts) <= 1:
+        return [run_claude(p) for p in prompts]
+    results = [None] * len(prompts)
+    with ThreadPoolExecutor(max_workers=min(CONCURRENCY, len(prompts))) as ex:
+        futs = {ex.submit(run_claude, p): idx for idx, p in enumerate(prompts)}
+        for fut, idx in futs.items():
+            results[idx] = fut.result()
+    return results
 
 
 def parse_args(argv):
@@ -184,39 +268,126 @@ def main():
         return
 
     templates = {fmt: load_template(fmt) for fmt in formats}
-    generated, failed = 0, 0
 
+    # 各出力ファイルを 1 つ以上のセグメント（時間帯）に分けてジョブ化する。
+    # 上限以下なら 1 セグメント、超過したら split_to_fit で文字数分割する。
+    jobs = []  # {out_path, label, n, units:[(span, prompt), ...]}
     for pid, d, path in targets:
         entries = read_entries(path)
-        log_text = render_log(entries)
-        if not log_text.strip():
+        chunks = split_to_fit(entries)
+        if not chunks or not any(txt.strip() for _, txt in chunks):
             continue
         disp_pid = "未分類" if pid == "_unclassified" else pid
+        n = len(chunks)
         for fmt in formats:
             out_dir = os.path.join(home, OUTPUT_SUBDIR, fmt)
             os.makedirs(out_dir, exist_ok=True)
             out_path = os.path.join(out_dir, "%s_%s.md" % (pid, d))
-            prompt = BASE_INSTRUCTION.format(
-                template=templates[fmt], project=disp_pid, date=d, log=log_text,
-            )
-            if dry:
-                with open(out_path + ".prompt.txt", "w", encoding="utf-8") as f:
-                    f.write(prompt)
-                sys.stderr.write("[summarize] (dry) %s\n" % (out_path + ".prompt.txt"))
-                generated += 1
-                continue
-            sys.stderr.write("[summarize] 生成中 %s/%s ...\n" % (fmt, "%s_%s" % (pid, d)))
-            ok, result = run_claude(prompt)
+            units = []
+            for idx, (chunk_entries, text) in enumerate(chunks, start=1):
+                if n > 1:
+                    lo, hi = chunk_time_range(chunk_entries)
+                    span = "%s–%s" % (lo or "??", hi or "??")
+                    log_for_prompt = (
+                        "（この作業ログは長いため時間帯 %d/%d: %s の部分です）\n\n%s"
+                        % (idx, n, span, text)
+                    )
+                else:
+                    span = None
+                    log_for_prompt = text
+                prompt = BASE_INSTRUCTION.format(
+                    template=templates[fmt], project=disp_pid, date=d, log=log_for_prompt,
+                )
+                units.append((span, prompt))
+            jobs.append({
+                "out_path": out_path, "label": "%s/%s_%s" % (fmt, pid, d),
+                "n": n, "units": units,
+            })
+
+    generated, failed = 0, 0
+
+    if dry:
+        for job in jobs:
+            path = job["out_path"] + ".prompt.txt"
+            if job["n"] == 1:
+                blob = job["units"][0][1]
+            else:
+                sep = "\n" + "=" * 60 + "\n"
+                blob = sep.join(
+                    "## 【時間帯 %d/%d: %s】\n%s" % (i, job["n"], span or "", pr)
+                    for i, (span, pr) in enumerate(job["units"], start=1)
+                )
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(blob)
+            sys.stderr.write("[summarize] (dry) %s\n" % path)
+            generated += 1
+        sys.stderr.write("[summarize] 生成=%d 失敗=%d\n" % (generated, failed))
+        return
+
+    # 全ジョブの全セグメントのプロンプトを平坦化し、まとめて並列生成する。
+    flat, index = [], []  # index[k] = (job_idx, unit_idx)
+    for ji, job in enumerate(jobs):
+        for ui, (_span, prompt) in enumerate(job["units"]):
+            index.append((ji, ui))
+            flat.append(prompt)
+
+    if not flat:
+        sys.stderr.write("[summarize] 対象なし\n")
+        return
+
+    n_split = sum(1 for j in jobs if j["n"] > 1)
+    sys.stderr.write(
+        "[summarize] %d ファイル / %d セグメント（分割ファイル %d）を最大 %d 並列で生成中...\n"
+        % (len(jobs), len(flat), n_split, min(CONCURRENCY, len(flat)))
+    )
+    results = run_claude_many(flat)
+
+    per_job = {}
+    for (ji, ui), res in zip(index, results):
+        per_job.setdefault(ji, {})[ui] = res
+
+    for ji, job in enumerate(jobs):
+        resmap = per_job.get(ji, {})
+        out_path = job["out_path"]
+        n = job["n"]
+        if n == 1:
+            ok, result = resmap.get(0, (False, "結果なし"))
             if ok:
                 with open(out_path, "w", encoding="utf-8") as f:
                     f.write(result + "\n")
                 generated += 1
             else:
                 with open(out_path + ".prompt.txt", "w", encoding="utf-8") as f:
-                    f.write(prompt)
+                    f.write(job["units"][0][1])
                 sys.stderr.write("[summarize] 失敗(%s): %s -> プロンプトを %s に保存\n"
-                                 % (fmt, result, out_path + ".prompt.txt"))
+                                 % (job["label"], result, out_path + ".prompt.txt"))
                 failed += 1
+            continue
+
+        # 分割ファイル: 各セグメントを時間帯見出し付きで 1 ファイルに連結する
+        blocks = ["（ログが長いため時間帯で %d 分割して整理）" % n]
+        n_ok = 0
+        for ui, (span, prompt) in enumerate(job["units"]):
+            i = ui + 1
+            ok, result = resmap.get(ui, (False, "結果なし"))
+            header = "---\n## 【時間帯 %d/%d: %s】" % (i, n, span or "")
+            if ok:
+                blocks.append("%s\n\n%s" % (header, result))
+                n_ok += 1
+            else:
+                part_path = "%s.prompt.part%d.txt" % (out_path, i)
+                with open(part_path, "w", encoding="utf-8") as f:
+                    f.write(prompt)
+                blocks.append("%s\n\n（この時間帯の生成に失敗: %s。プロンプトを %s に保存）"
+                              % (header, result, part_path))
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write("\n\n".join(blocks) + "\n")
+        if n_ok == n:
+            generated += 1
+        else:
+            failed += 1
+            sys.stderr.write("[summarize] 一部失敗(%s): %d/%d セグメント成功\n"
+                             % (job["label"], n_ok, n))
 
     sys.stderr.write("[summarize] 生成=%d 失敗=%d\n" % (generated, failed))
 
