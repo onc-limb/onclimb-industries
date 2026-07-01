@@ -1,5 +1,5 @@
 ---
-name: knowledge-base
+name: jarvis-knowledge-base
 description: >-
   worklog が生成した技術整理情報(tech digest)を入力に、技術領域ごとに集約した
   Obsidian 形式のナレッジベース(vault)を生成・更新するスキル。タグ・[[リンク]]入りの
@@ -19,7 +19,7 @@ worklog が縦割り（プロジェクト×日付）で吐き出す `tech` diges
 
 ## 場所（コードとデータは分離）
 
-- ツール・設定: このスキルディレクトリ `.claude/skills/knowledge-base/`（`bin/` `config/` `templates/`）
+- ツール・設定: このスキルディレクトリ `.claude/skills/jarvis-knowledge-base/`（`bin/` `config/` `templates/`）
 - **入力**: worklog の `worklog-data/digests/tech/*.md`（`WORKLOG_DATA` 環境変数で上書き可）
 - **出力(vault)**: 既定はリポジトリ直下 `knowledge-base/`。`--out` / `KB_HOME` / `config/kb.yaml` で変更可。
   既定の出力先はリポジトリ直下 `.gitignore` で除外済み。
@@ -38,7 +38,7 @@ worklog が縦割り（プロジェクト×日付）で吐き出す `tech` diges
 ## 標準フロー（一声でナレッジベースを生成・更新）
 
 ```bash
-SKILL=/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/knowledge-base
+SKILL=/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/jarvis-knowledge-base
 python3 "$SKILL/bin/kb_build.py"
 ```
 

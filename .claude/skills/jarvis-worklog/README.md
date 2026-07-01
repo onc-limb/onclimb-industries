@@ -30,7 +30,7 @@ Claude Code での作業（会話＋ツール操作）を自動で記録し、**
 **コード・設定**（git 追跡）＝ スキルディレクトリ内:
 
 ```
-.claude/skills/worklog/
+.claude/skills/jarvis-worklog/
 ├── SKILL.md                  # スキル本体（自然言語トリガー）
 ├── README.md
 ├── bin/
@@ -71,7 +71,7 @@ Claude Code での作業（会話＋ツール操作）を自動で記録し、**
 ## セットアップ
 
 `<SKILL>` はスキルディレクトリの絶対パス
-（例: `/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/worklog`）。
+（例: `/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/jarvis-worklog`）。
 
 ### 1. 依存
 

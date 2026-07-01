@@ -1,5 +1,5 @@
 ---
-name: worklog
+name: jarvis-worklog
 description: 作業記録システム。Claude Code の会話・ツール操作ログを収集→分類→「整理された情報」2形式（プロジェクト視点 / 技術者視点）に整理→アーカイブ退避する。「作業ログ」「まとめて」「作業報告」「進捗報告」「整理して」「技術整理」「今日の作業をまとめて」等で起動。出力は最終報告書そのものではなく、後段の別スキルがきちんとした報告書へ整形するための詳細な整理情報。SES 参画中の作業報告・ナレッジ蓄積のために、最終成果物だけでなく「何を考え・何を試したか」という過程を残す。生ログは削除せず zip 退避するため消失しない。
 metadata:
   type: skill
@@ -18,7 +18,7 @@ metadata:
 
 ## 場所（コードとデータは分離されている）
 
-- ツール本体・設定: このスキルディレクトリ `.claude/skills/worklog/`（`bin/` `config/` `templates/`）
+- ツール本体・設定: このスキルディレクトリ `.claude/skills/jarvis-worklog/`（`bin/` `config/` `templates/`）
 - 設定: `config/{sources,projects,redaction}.yaml`
 - **データ**: スキルが属する git リポジトリ直下の `worklog-data/`
   （`raw/` `classified/` `digests/` `archive/` `logs/`）。`WORKLOG_DATA` 環境変数で上書き可。
@@ -39,7 +39,7 @@ metadata:
 ## 標準フロー（「まとめて」の一声で当日分を整理情報まで）
 
 ```bash
-SKILL=/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/worklog
+SKILL=/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/jarvis-worklog
 TODAY=$(date +%F)
 bash   "$SKILL/bin/collect.sh"                 # 1) 取りこぼし収集（冪等）
 python3 "$SKILL/bin/classify.py" "$TODAY"      # 2) 当日分を分類（①②決定論→③LLM/Sonnet→④keyword fallback）

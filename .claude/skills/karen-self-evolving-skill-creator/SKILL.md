@@ -1,5 +1,5 @@
 ---
-name: self-evolving-skill-creator
+name: karen-self-evolving-skill-creator
 description: Create new Claude skills that ship with a built-in self-evolution pipeline. Every generated skill records each pipeline run (instruction, reasoning trace, output, follow-up feedback, completion state) into its own logs/ directory, and rewrites its own SKILL.md / scripts when accumulated logs cross a configurable threshold (default 10 pipeline runs). Use this skill whenever the user wants to build a skill that learns from usage, adapts SKILL.md to feedback, keeps a structured execution log, or asks for an "adaptive", "self-improving", "auto-tuning", or "self-evolving" skill — even when the user does not name those exact terms but describes a skill that should remember how it was used and improve itself. The meta-skill applies the same pipeline to itself, so improvements to scaffolding compound over time.
 metadata:
   type: skill

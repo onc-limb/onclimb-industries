@@ -6,7 +6,7 @@
 ## 構成
 
 ```
-.claude/skills/giziroku/
+.claude/skills/friday-giziroku/
   SKILL.md              # 起動条件・4 段フロー（エントリポイント）
   scripts/
     parse_transcript.py # Phase A: 話者集計・抜粋・タイムライン・話者なし推定（決定的処理）
@@ -35,7 +35,7 @@
 
 ```bash
 # Phase A の素材取得（スキルが内部で呼ぶ）
-python3 .claude/skills/giziroku/scripts/parse_transcript.py "giziroku/transcripts/xxx-transcript.txt" --json
+python3 .claude/skills/friday-giziroku/scripts/parse_transcript.py "giziroku/transcripts/xxx-transcript.txt" --json
 ```
 
 worklog（作業ログ整理）とは別系統。パイプラインを共有しない。

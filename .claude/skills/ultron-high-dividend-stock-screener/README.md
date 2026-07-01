@@ -43,7 +43,7 @@ high-dividend-stock-screener/
 ## 主なコマンド
 
 ```bash
-SKILL=.claude/skills/high-dividend-stock-screener
+SKILL=.claude/skills/ultron-high-dividend-stock-screener
 python3 "$SKILL/bin/registry.py" status                       # 台帳の累計
 python3 "$SKILL/bin/registry.py" filter --stdin               # 未調査だけ抽出（重複調査防止）
 python3 "$SKILL/bin/judge.py"     --file companies.json       # コア4条件で合否

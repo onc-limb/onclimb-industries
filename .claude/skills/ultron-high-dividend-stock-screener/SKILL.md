@@ -1,5 +1,5 @@
 ---
-name: high-dividend-stock-screener
+name: ultron-high-dividend-stock-screener
 description: 日本の高配当株を screening して「おすすめ候補リスト」を作るスキル。公開情報(Yahoo!ファイナンス/IR BANK 等)から配当利回り4%以上の日本株を拾い、配当が右肩上がり・配当性向50%未満・営業利益に赤字なしの健全性で篩い、REIT/投資法人/インフラFを除外する。調べた会社は法人番号で台帳に記録し、回を分けて積み増す(続きから再開可)。最後に Claude のレビュー(偏り/要再確認/免責)を添える。「高配当株のおすすめをリストにして」「配当利回り4%以上の日本株を screening して」「増配が続いて配当性向50%未満の銘柄を探して」「前回の続きから高配当株を調べて」「この候補リストに Claude の評価コメント入れて」等で、ユーザーが意図的に起動したときだけ動く(自動起動しない)。投資助言ではなく情報整理。一般的な投資相談・worklog とは別系統。
 metadata:
   type: skill
@@ -17,7 +17,7 @@ metadata:
 
 ## 場所（コードとデータは分離されている）
 
-- ツール本体・設定: このスキルディレクトリ `.claude/skills/high-dividend-stock-screener/`（`bin/` `config/` `references/` `templates/`）
+- ツール本体・設定: このスキルディレクトリ `.claude/skills/ultron-high-dividend-stock-screener/`（`bin/` `config/` `references/` `templates/`）
 - 設定: `config/screener.yaml`（しきい値・除外パターン・batch_size）
 - **データ**: スキルが属する git リポジトリ直下の `stock-data/`
   （`registry/screened.jsonl` 台帳、`lists/<date>.md` リスト、`edinet/` 法人番号コードリストのキャッシュ）。
@@ -48,7 +48,7 @@ metadata:
 ## 標準フロー（「高配当株のおすすめをリストにして」の一声で）
 
 ```bash
-SKILL=/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/high-dividend-stock-screener
+SKILL=/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/ultron-high-dividend-stock-screener
 TODAY=$(python3 -c "import datetime,zoneinfo;print(datetime.datetime.now(zoneinfo.ZoneInfo('Asia/Tokyo')).date())")
 python3 "$SKILL/bin/registry.py" status     # 0) 台帳の累計を確認（続きの起点）
 ```

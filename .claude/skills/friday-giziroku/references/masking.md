@@ -1,6 +1,6 @@
 # マスキング規約（議事録向け）
 
-worklog の規約（`.claude/skills/worklog/config/redaction.yaml`）を**定義として流用**し、
+worklog の規約（`.claude/skills/jarvis-worklog/config/redaction.yaml`）を**定義として流用**し、
 運用は giziroku 側で独立させる。出典: [[knowledge-base-idea]] §2 / [[work-log-system-instructions]]。
 
 > 原則: 「private だから機密を入れてよい」ではない。`giziroku/` は git 管理外だが、
