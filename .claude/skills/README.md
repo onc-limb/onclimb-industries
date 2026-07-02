@@ -41,6 +41,7 @@
 | `jarvis-knowledge-base` | 作業記録・一次資料系 |
 | `jarvis-record` | 作業記録・一次資料系 |
 | `jarvis-todo-management` | 作業記録・一次資料系 |
+| `jarvis-issue-planner` | 作業記録・一次資料系 |
 | `friday-daily-report` | 共有ドキュメント系 |
 | `friday-giziroku` | 共有ドキュメント系 |
 | `friday-proposal-generator` | 共有ドキュメント系 |
