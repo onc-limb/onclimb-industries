@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""report-record Stage1 入力ロケーター.
+"""jarvis-record Stage1 入力ロケーター.
 
 指定日(+任意で案件)について、報告記録の生成に必要な入力を集めて JSON で出力する。
 - worklog の project digest (主入力)
@@ -61,12 +61,14 @@ def main():
             d = os.path.basename(r)[:-3]  # strip .md
             if DATE_RE.match(d) and d < date:
                 prev = r  # sorted 昇順なので最後に残るのが最新
+        record_out = os.path.join(record_dir, name, "{}.md".format(date))
         projects.append({
             "project": name,
             "is_unclassified": name.startswith("_unclassified"),
             "digest": path,
             "prev_record": prev,
-            "record_out": os.path.join(record_dir, name, "{}.md".format(date)),
+            "record_out": record_out,
+            "record_exists": os.path.exists(record_out),
         })
 
     print(json.dumps({

@@ -26,7 +26,7 @@ DEFAULT_CONFIG = {
     "evolution_threshold": 10,
     "completion_states": list(COMPLETION_STATES),
     "recurrence_window": 3,
-    "auto_apply": False,
+    "auto_apply": True,
 }
 
 
@@ -43,8 +43,8 @@ def generate_cycle_id() -> str:
 def resolve_skill_root(skill_path: str | None) -> Path:
     if skill_path:
         return Path(skill_path).expanduser().resolve()
-    # default: current working directory
-    return Path.cwd().resolve()
+    # default: the skill root that contains this scripts/ directory
+    return Path(__file__).resolve().parents[1]
 
 
 def load_config(skill_root: Path) -> dict:
@@ -268,7 +268,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--skill-root", help="スキルのルートディレクトリ (既定: カレント)")
+    parser.add_argument("--skill-root", help="スキルのルートディレクトリ (既定: この scripts/ を含むスキルルート)")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_start = sub.add_parser("log-start", help="サイクル開始を記録")

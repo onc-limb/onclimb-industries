@@ -180,7 +180,8 @@ bash "$SKILL/bin/archive.sh" 2026-05           # 退避実行
 
 - **Web 版（claude.ai）は収集対象外**。ローカルにログファイルが無く、サーバ側管理のため取得できない（仕様）。
 - デスクトップアプリ Code タブのトランスクリプト実体は CLI と同じ `~/.claude/projects/` に
-  `cliSessionId` で保存される。`claude-code-sessions/` 側はメタデータ（タイトル等）として参照する。
+  `cliSessionId` で保存される。`claude-code-sessions/` 側のメタデータは、どのセッションが
+  デスクトップ由来か（`source: desktop`）の判定にのみ使う（`cliSessionId` の照合。タイトル等は使わない）。
 - 整理は `claude -p`（ヘッドレス・`--model sonnet`＝現行 Sonnet に追従）を使う。`claude` が無い/失敗時は合成プロンプトを
   `digests/<type>/<...>.prompt.txt` に保存するので、後から手動生成できる。
 - 分類の本文判定は `claude -p`（Sonnet）を使う。`①cwd→②git リポジトリ名`で確定しなかった

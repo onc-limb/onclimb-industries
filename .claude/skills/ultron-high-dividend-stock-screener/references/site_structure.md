@@ -16,6 +16,14 @@
 - この段で **REIT・投資法人・インフラファンド・ETF/ETN を除外**（名称・区分で判定。`screening_rules.md` 参照）。
 - 利回り ≧ 閾値の銘柄を上から拾い、証券コード列を `registry.py filter` に渡して**未調査だけ**に絞る。
 - // ASSUMPTION: ランキングページはページネーションあり。1 回の起動では batch_size 分が埋まるまで上位から取得。
+- **母集団カーソル（`<STOCK_DATA>/registry/cursor.json`）**: 回を重ねるたびに 1 ページ目から取り直さないための
+  読み進め位置。スクリプトは介さず、**エージェントが直接 Read/Write する**（スキーマ例は SKILL.md 手順 2）。
+  - 開始時: cursor.json を Read し、mode=continue なら `last_page` の続きから取得（無ければ 1 ページ目）。
+    `fetched_at` が古い（目安 1 週間超）ときは順位入れ替わりを考慮して 1 ページ手前から拾い直してよい。
+  - ページ内が**全部 known**（`registry.py filter` の new が空）なら次ページへ。
+  - ページを進めて**利回りが閾値未満**になったら母集団は消化済み → ユーザーに報告して終了し、
+    cursor.json に `exhausted: true` を付けて Write。
+  - 終了時: 最後に取得したページ番号・最後に見た利回り・当日日付で cursor.json を Write（上書き）。
 
 ## 2) 健全性データ（1 社ずつ）
 
@@ -37,6 +45,9 @@
   - キャッシュ: `<STOCK_DATA>/edinet/EdinetcodeDlInfo.csv`。`--refresh` で再取得。
 - フォールバック: EDINET で引けない例外のみ **国税庁 法人番号システム Web-API**（無料のアプリケーションID登録要）で
   **社名照合**。表記揺れで曖昧になりやすいため、確定できなければ台帳に candidate として残し**人手確認**に回す。
+  - アプリケーションID は**環境変数 `HOUJIN_API_ID`** から読む（コードやログに直書きしない）。
+  - **`HOUJIN_API_ID` 未設定ならフォールバックしない**。該当銘柄は `corp_number: null` +
+    `corp_status: "unresolved"` で台帳に記録して続行する（処理は止めない。重複排除は証券コードで効く）。
 
 ## 取得失敗時の方針
 

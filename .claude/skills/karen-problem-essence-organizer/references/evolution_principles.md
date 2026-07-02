@@ -63,8 +63,10 @@
 
 - 適用前のスナップショットを `logs/evolutions/<timestamp>/before/` に保存。
 - 差分は `logs/evolutions/<timestamp>/diff.patch` で保管。
-- 既定は `auto_apply=true`。`SKILL.md` / `references/` / ドメイン固有 `scripts/` は人手承認なしで自動適用する (ユーザーの明示的な指示)。
-- 唯一の例外は `scripts/pipeline.py` (および `scripts/evolve.py`)。これらは自己破壊防止のため自動進化の対象外。改変が必要なら `EVOLUTION.md` に提案だけ書き、人手で適用する。
+- `evolve.py review` が行うのは **提案の起草まで** (EVOLUTION.md への追記)。適用は EVOLUTION.md を
+  読んだ Claude が `evolve.py snapshot` 実行後に Edit で行う (自動適用の仕組みは無い)。
+  対象は `SKILL.md` / `references/` / ドメイン固有 `scripts/`。
+- 唯一の例外は `scripts/pipeline.py` (および `scripts/evolve.py`)。これらは自己破壊防止のため進化適用の対象外。改変が必要なら `EVOLUTION.md` に提案だけ書き、人手で適用する。
 
 ---
 

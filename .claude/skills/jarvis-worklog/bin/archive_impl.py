@@ -5,7 +5,8 @@
 整理済みの raw/ classified/ を月単位で zip 化し archive/YYYY-MM.zip へ退避する。
 - 圧縮後に元ファイルを削除（zip 内には必ず残る＝完全消失しない）。
 - 実行前に「未整理のログが残っていないか」をチェックし、残っていれば中断・警告する。
-  （digests/{project,tech}/<pid>_<date>.md が揃っているかで判定）
+  （digests/{project,tech}/<pid>_<date>.md が揃っているかで判定。
+    加えて raw にあるのに classified に無い日付＝classify 未実行分も検出して中断する）
 
 使い方:
   bin/archive.sh                 # 当月より前の全月を対象（安全）
@@ -71,15 +72,25 @@ def archive_month(home, month, force, check_only):
         sys.stderr.write("[archive] %s: 対象ファイルなし\n" % month)
         return
 
+    # raw にあるのに classified に無い日付は classify 未実行（収集済み未分類）。
+    # digest チェックだけでは素通りして削除されるため、ここで検出して中断する。
+    raw_dates = {os.path.basename(f)[:-6] for f in raw_files}
+    cls_dates = {os.path.basename(f)[:-6] for f in cls_files}
+    unclassified_dates = sorted(raw_dates - cls_dates)
     missing = find_unsummarized(home, month)
-    if missing:
-        sys.stderr.write("[archive] %s: 未整理のログ（digest未生成）があります:\n" % month)
-        for pid, date, lack in missing:
-            sys.stderr.write("    - %s/%s 不足: %s\n" % (pid, date, ",".join(lack)))
+    if unclassified_dates or missing:
+        if unclassified_dates:
+            sys.stderr.write("[archive] %s: classify 未実行の raw があります:\n" % month)
+            for date in unclassified_dates:
+                sys.stderr.write("    - raw/%s.jsonl（classified に該当日なし）\n" % date)
+        if missing:
+            sys.stderr.write("[archive] %s: 未整理のログ（digest未生成）があります:\n" % month)
+            for pid, date, lack in missing:
+                sys.stderr.write("    - %s/%s 不足: %s\n" % (pid, date, ",".join(lack)))
         if check_only:
             return
         if not force:
-            sys.stderr.write("[archive] %s: 中断（先に summarize で整理するか --force を付けてください）\n" % month)
+            sys.stderr.write("[archive] %s: 中断（先に classify / summarize で整理するか --force を付けてください）\n" % month)
             return
         sys.stderr.write("[archive] %s: --force のため未整理があっても続行します\n" % month)
     if check_only:

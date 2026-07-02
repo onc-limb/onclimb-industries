@@ -32,8 +32,8 @@ worklog が縦割り（プロジェクト×日付）で吐き出す `tech` diges
 | 「最初から作り直して」「全部再生成」 | `--rebuild`（タクソノミーから全再構築） |
 | 「最近のぶんだけ」「6月以降で」 | `--since YYYY-MM-DD` を付ける |
 | 「onclimb-industries の知見だけ」 | `--project <id>` を付ける |
-| 「分類体系だけ見たい」「どんな技術領域になるか」 | `--taxonomy-only`（ノート生成せず JSON + index のみ） |
-| 「動作確認」「お試しで少しだけ」 | `--limit N`（技術ノートを先頭 N 件に制限） |
+| 「分類体系だけ見たい」「どんな技術領域になるか」 | `--taxonomy-only`（ノート生成せず JSON + index のみ。取り込み済み扱いにしない） |
+| 「動作確認」「お試しで少しだけ」 | `--limit N`（技術ノートを先頭 N 件に制限。取り込み済み扱いにしない） |
 
 ## 標準フロー（一声でナレッジベースを生成・更新）
 
@@ -44,12 +44,13 @@ python3 "$SKILL/bin/kb_build.py"
 
 `_taxonomy.json`（状態ファイル）の有無で自動的にモードが切り替わる:
 
-- **初回（状態なし）= 全構築（2 パス）**。`claude -p` をヘッドレス実行（worklog/summarize.py と同方式）:
+- **初回（状態なし）= 全構築（2 パス）**。`claude -p` をヘッドレス実行（worklog/summarize.py と同方式。
+  ツールは全て無効化し、テキスト生成のみさせる）:
   1. **タクソノミー**: 全 digest の要点を 1 回でクラスタリング → 技術領域 JSON。
-  2. **ノート生成**: 技術領域ごとに寄与 digest を渡してノート 1 枚を生成。
+  2. **ノート生成**: 技術領域ごとに寄与 digest を渡してノート 1 枚を生成（**同時 3 並列**）。
 - **2 回目以降（状態あり）= 増分更新**。worklog が増えても全再生成せずスケールする:
   1. **新規 digest のみ分類**（既存領域へ割り当て／必要時のみ新領域提案）。
-  2. **影響を受けたノートだけ**「既存ノート + 新規 digest」でマージ再生成。**変化の無い領域はスキップ（LLM 呼び出しゼロ）**。
+  2. **影響を受けたノートだけ**「既存ノート + 新規 digest」でマージ再生成（**同時 3 並列**）。**変化の無い領域はスキップ（LLM 呼び出しゼロ）**。
   3. 新規 digest が無ければ index 更新のみで即終了（claude を一切呼ばない）。
 
 > なぜ増分か: 全 digest 再生成はコストが履歴総量に比例し、ノート入力上限（13万字）超で古い知見が切り捨てられる。
@@ -68,8 +69,8 @@ python3 "$SKILL/bin/kb_build.py" --out ~/obsidian/knowledge   # 出力先を実 
 python3 "$SKILL/bin/kb_build.py" --since 2026-06-01           # 指定日以降の digest のみ
 python3 "$SKILL/bin/kb_build.py" --project onclimb-industries             # 指定プロジェクトのみ
 python3 "$SKILL/bin/kb_build.py" --no-unclassified            # _unclassified を除外
-python3 "$SKILL/bin/kb_build.py" --limit 3                    # 技術ノートを先頭3件だけ（確認用）
-python3 "$SKILL/bin/kb_build.py" --taxonomy-only              # 分類体系(JSON)+index のみ（全再クラスタ）
+python3 "$SKILL/bin/kb_build.py" --limit 3                    # 技術ノートを先頭3件だけ（確認用。seen は空で保存）
+python3 "$SKILL/bin/kb_build.py" --taxonomy-only              # 分類体系(JSON)+index のみ（全再クラスタ。seen は空で保存）
 python3 "$SKILL/bin/kb_build.py" --dry-run                    # claude を呼ばずプロンプトのみ出力
 ```
 
@@ -78,8 +79,16 @@ python3 "$SKILL/bin/kb_build.py" --dry-run                    # claude を呼ば
 - **入力が無いと動かない**: 先に worklog で `tech` digest を生成しておくこと（`summarize.py`）。
 - **機密**: digest は collect 段階でマスキング済み。ノート生成プロンプトでも一般化・機密非混入を厳守させている。
   公開派生（ポートフォリオ等）は、この vault からさらにマスキング＋再構成を経た抜粋のみを使う（蓄積≠公開）。
-- **claude CLI 必須**: タクソノミー/ノート生成は `claude -p` を使う。無い/失敗時はプロンプトを
-  `<vault>/*.prompt.txt` に保存するので、後から手動生成できる。
+- **claude CLI 必須**: タクソノミー/ノート生成は `claude -p` を使う（ツールは全無効化してテキスト生成のみ）。
+  無い/失敗時はプロンプトを `<vault>/*.prompt.txt` に保存する。
+- **ノート生成に失敗したときの復旧**: 失敗したノートに紐づく digest は取り込み済み（`seen`）に入れないため、
+  **次回実行で自動リトライされる**（基本はこれで復旧）。`.prompt.txt` が残っている場合は手動でも復旧できる:
+  `claude -p --output-format text < <vault>/tech/<slug>.md.prompt.txt` の出力を `<vault>/tech/<slug>.md` に
+  保存する（次回のノート再生成が成功すると `.prompt.txt` / `.raw.txt` は自動で掃除される）。
+- **`--taxonomy-only` / `--limit` は取り込み済み扱いにしない**: どちらも状態の `seen` を空で保存するため、
+  次回の通常実行が増分更新として全 digest をノートへ取り込む。
+- **入力上限超過の警告**: 1 ノートへの寄与 digest 本文が上限（13万字）を超えると、超過分の digest を省略して
+  stderr に警告を出す。省略分は `seen`・`sources` に入れず、次回実行に持ち越す。
 - **増分とノート上書き**: 増分更新は該当ノートを「既存ノート + 新規 digest」でマージ再生成し**上書き**する。
   手で追記した内容は失われるため、恒久的な加筆は別ファイル（例: `tech/<slug>.notes.md`）に分けることを推奨。
 - **slug は状態ファイルで固定**: 増分では既存 slug を再利用するので揺れない。`--rebuild` 時のみ再クラスタで

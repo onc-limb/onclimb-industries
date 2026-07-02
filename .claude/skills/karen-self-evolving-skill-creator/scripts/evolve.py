@@ -3,7 +3,8 @@
 
 `logs/pipeline.jsonl` を読んで自己進化レビューを実行し、提案を `EVOLUTION.md` に追記する。
 このスクリプトは「機械的な検出」と「人間 / Claude が判断する素材」を分離する。
-SKILL.md の書き換え自体は人手承認 (auto_apply=false の既定) または別の Edit 操作で行う。
+review が行うのは提案の起草までで、適用は Claude が snapshot → Edit → diff 保存の順に行う
+(auto_apply=true の既定では人手承認なしに適用してよい)。
 
 サブコマンド:
   review     直近 N 件のログを分析し EVOLUTION.md に提案を追記。
@@ -171,8 +172,8 @@ def cmd_review(args: argparse.Namespace) -> int:
                 "cycles_analyzed": len(cycles),
                 "signals_detected": len(signals),
                 "evolution_md": str(evolution_md),
-                "auto_apply": bool(config.get("auto_apply", False)),
-                "next_step": "Edit SKILL.md / scripts based on EVOLUTION.md, then log this evolution cycle.",
+                "auto_apply": bool(config.get("auto_apply", True)),
+                "next_step": "Run evolve.py snapshot, Edit SKILL.md / scripts per EVOLUTION.md, save the diff, then log this evolution cycle.",
             },
             ensure_ascii=False,
             indent=2,
@@ -203,13 +204,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_review = sub.add_parser("review", help="自己進化レビューを実行し EVOLUTION.md に提案を追記")
-    p_review.add_argument("--skill-path", default=".", help="対象スキルのルート")
+    p_review = sub.add_parser("review", help="自己進化レビューを実行し EVOLUTION.md に提案を追記 (起草まで; 適用は Claude)")
+    p_review.add_argument("--skill-path", default=None, help="対象スキルのルート (既定: この scripts/ を含むスキルルート)")
     p_review.add_argument("--window", type=int, default=0, help="観測する直近サイクル数 (0=しきい値を流用)")
     p_review.set_defaults(func=cmd_review)
 
     p_snap = sub.add_parser("snapshot", help="現行 SKILL.md / scripts / references のスナップショットを保存")
-    p_snap.add_argument("--skill-path", default=".")
+    p_snap.add_argument("--skill-path", default=None, help="対象スキルのルート (既定: この scripts/ を含むスキルルート)")
     p_snap.set_defaults(func=cmd_snapshot)
 
     return parser

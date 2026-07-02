@@ -68,6 +68,11 @@ mode: realtime|postmortem|retrospective
 - 検討して外した手段 + 理由
 - 過去に試して失敗したパターン
 
+## 未解決の問い (Open Questions) (任意)
+
+- 対話中に投げた批判的指摘・オープン質問のうち、未回答のまま残ったもの
+- 次に考えるときの入口として残す (入力キー: `open_questions`)
+
 ## 振り返り (任意)
 
 - 今回、手段先行になりかけた瞬間
@@ -86,7 +91,7 @@ mode: realtime|postmortem|retrospective
 
 ---
 
-## 2. クライアント向け HTML (`<topic>.html`)
+## 2. クライアント向け HTML (`<topic>__client-proposal.html`)
 
 ### 目的
 - クライアントへの提案資料。商談・キックオフで渡せる形。
@@ -134,6 +139,8 @@ mode: realtime|postmortem|retrospective
 - 単一の HTML ファイル (CSS インライン or `<style>`)。外部依存なし。
 - 印刷 (PDF 化) しても崩れないこと (`@media print` を最低限備える)。
 - 生成スクリプト: `scripts/render_html.py`
+- 各本文フィールドは str / list の両対応 (str は `\n\n` 区切りで複数段落、list は箇条書き)。
+  空値は `(未記入)` と明示表示する (無言で空にしない)。
 
 ---
 
@@ -141,6 +148,10 @@ mode: realtime|postmortem|retrospective
 
 ### ファイル命名
 - `<date>__retrospective.md`
+
+### 生成スクリプト
+- `scripts/render_markdown.py --mode retrospective --topic <date>`
+- 入力キー: `facts` / `drift` / `means_first` / `learning` (+ 任意で `open_questions`)
 
 ### 章立て
 

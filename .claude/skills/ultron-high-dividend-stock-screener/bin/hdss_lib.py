@@ -233,6 +233,9 @@ def normalize_ticker(code):
     """証券コードを 4 桁(英数)の正規形へ。
     EDINET は末尾 0 付きの 5 桁(例 トヨタ 72030 / 新形式 130A0)で配布されるため、
     5 桁なら末尾 1 文字を落として 4 桁にそろえる。Yahoo 等の 4 桁はそのまま。
+
+    制限: 末尾が 0 以外の 5 桁コード(優先株等。例 伊藤園第1種優先 25935)は
+    4 桁へ正規化できないためそのまま返す = EDINET との突合対象外(SKILL.md §注意 参照)。
     """
     if code is None:
         return None
@@ -263,6 +266,15 @@ DEFAULT_EXCLUDE_NAME_PATTERNS = [
 ]
 
 
+def _pattern_matches(name, upper, p):
+    """1 パターンの照合。「リート」だけは部分一致だと「日本コンクリート工業」等を
+    誤除外するため（実測事例。screening_rules.md §進化メモ 参照）、
+    名称末尾が「リート」または「リート投資法人」を含む場合のみ一致とする。"""
+    if p == "リート":
+        return name.endswith("リート") or "リート投資法人" in name
+    return p in name or p.upper() in upper
+
+
 def exclusion_reason(name, exclude_patterns=None):
     """社名から除外対象(REIT 等)かどうかを判定。除外なら理由文字列、対象外なら None。
     名称サフィックス/部分一致での一次判定。市場区分・銘柄種別が取れる場合は呼び出し側で併用する。"""
@@ -273,7 +285,7 @@ def exclusion_reason(name, exclude_patterns=None):
     for p in pats:
         if not p:
             continue
-        if p in name or p.upper() in upper:
+        if _pattern_matches(name, upper, p):
             return "name_match:%s" % p
     return None
 
@@ -316,18 +328,63 @@ def registry_keys(records):
 
 def append_registry(record):
     """1 件追記。corp_number か ticker が既存なら追記せず False を返す（重複排除）。"""
+    return append_registry_many([record])[0]
+
+
+def append_registry_many(records_in):
+    """複数件をまとめて追記。台帳の全読は 1 回だけ行い、追記した分もキー集合に
+    加えながら重複排除する（1 件ずつ append_registry を呼ぶ O(n^2) を避ける）。
+    入力と同順の bool リスト（追記したら True、重複スキップなら False）を返す。"""
+    existing = read_registry()
+    corp, tickers = registry_keys(existing)
+    to_write = []
+    results = []
+    for record in records_in:
+        cn = record.get("corp_number")
+        tk = normalize_ticker(record.get("ticker"))
+        if (cn and str(cn) in corp) or (tk and tk in tickers):
+            results.append(False)
+            continue
+        if cn:
+            corp.add(str(cn))
+        if tk:
+            tickers.add(tk)
+        to_write.append(record)
+        results.append(True)
+    if to_write:
+        path = registry_path()
+        ensure_dir(os.path.dirname(path))
+        with open(path, "a", encoding="utf-8") as f:
+            for record in to_write:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    return results
+
+
+def update_registry(record):
+    """既存 1 件を置換する（再検証・mode=new の再調査結果の反映用）。
+    corp_number → ticker の順で一致行を探し、見つかれば行ごと record で置き換えて
+    True を返す。見つからなければ何もせず False を返す（追記はしない。add を使う）。"""
     records = read_registry()
-    corp, tickers = registry_keys(records)
     cn = record.get("corp_number")
     tk = normalize_ticker(record.get("ticker"))
-    if cn and str(cn) in corp:
+    idx = None
+    for i, r in enumerate(records):
+        if cn and r.get("corp_number") and str(r["corp_number"]) == str(cn):
+            idx = i
+            break
+    if idx is None and tk:
+        for i, r in enumerate(records):
+            if normalize_ticker(r.get("ticker")) == tk:
+                idx = i
+                break
+    if idx is None:
         return False
-    if tk and tk in tickers:
-        return False
+    records[idx] = record
     path = registry_path()
     ensure_dir(os.path.dirname(path))
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    with open(path, "w", encoding="utf-8") as f:
+        for r in records:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
     return True
 
 
@@ -467,3 +524,6 @@ if __name__ == "__main__":
     print("[judge] passed=%s reasons=%s" % (res["passed"], res["reasons"]))
     reit = dict(demo, name="○○リート投資法人")
     print("[judge:REIT] passed=%s" % judge_company(reit, cfg)["passed"])
+    pats = cfg.get("exclude_name_patterns")
+    print("[exclude] 日本コンクリート工業 -> %s / ジャパンリート -> %s" % (
+        exclusion_reason("日本コンクリート工業", pats), exclusion_reason("ジャパンリート", pats)))

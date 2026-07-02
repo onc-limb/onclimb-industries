@@ -3,10 +3,12 @@
 
 `logs/pipeline.jsonl` を読んで自己進化レビューを実行し、提案を `EVOLUTION.md` に追記する。
 このスクリプトは「機械的な検出」と「人間 / Claude が判断する素材」を分離する。
-SKILL.md の書き換え自体は人手承認 (auto_apply=false の既定) または別の Edit 操作で行う。
+このスクリプトが行うのは提案の起草まで。SKILL.md / scripts への適用は、EVOLUTION.md を
+読んだ Claude (または人手) が `evolve.py snapshot` 実行後に Edit で行う (自動適用は無い)。
 
 サブコマンド:
   review     直近 N 件のログを分析し EVOLUTION.md に提案を追記。
+             完了時に pipeline.jsonl へ evolution-review note を追記し、進化カウンタをリセットする。
   snapshot   進化前のディレクトリスナップショットを logs/evolutions/<ts>/ に保存。
 """
 from __future__ import annotations
@@ -27,6 +29,8 @@ if str(_HERE) not in sys.path:
 
 from pipeline import (  # type: ignore[import-not-found]  # noqa: E402
     COMPLETION_STATES,
+    append_jsonl,
+    generate_cycle_id,
     iter_jsonl,
     load_config,
     resolve_skill_root,
@@ -118,7 +122,7 @@ def render_evolution_entry(skill_name: str, signals: list[dict], cycles_window: 
         lines.append("シグナルなし: 改善候補は見つかりませんでした。")
         lines.append("")
         lines.append(
-            "メモ: 進化レビューを 1 サイクルとして pipeline.jsonl に記録すること (actions に `evolve.py` を含める)。"
+            "メモ: この review 実行は evolution-review note として pipeline.jsonl に自動記録済み (カウンタはリセットされる)。"
         )
         return "\n".join(lines) + "\n"
 
@@ -137,7 +141,8 @@ def render_evolution_entry(skill_name: str, signals: list[dict], cycles_window: 
     lines.append("1. 上記シグナルに対応する SKILL.md / scripts の修正案を起草。")
     lines.append("2. 公的知識との整合を 1 行で記載 (出典なき改善は不採用)。")
     lines.append("3. 適用前に `evolve.py snapshot` を実行してロールバック点を確保。")
-    lines.append("4. 適用後、進化レビュー自体を `pipeline.py log-end` で 1 サイクルとして記録。")
+    lines.append("4. 適用は EVOLUTION.md を読んだ Claude が Edit で行う (自動適用は無い)。")
+    lines.append("   この review 実行自体は evolution-review note として pipeline.jsonl に自動記録済み。")
     lines.append("")
     return "\n".join(lines) + "\n"
 
@@ -164,6 +169,20 @@ def cmd_review(args: argparse.Namespace) -> int:
             f.write(header)
         f.write(entry)
 
+    # review 完了を note として記録する。pipeline.py log-end はこの note を検知して
+    # 進化カウンタ (cycles_since_review) をリセットする。
+    append_jsonl(
+        jsonl,
+        {
+            "event": "note",
+            "cycle_id": generate_cycle_id(),
+            "skill_name": skill_name,
+            "noted_at": utc_now_iso(),
+            "category": "evolution-review",
+            "note": f"evolve.py review: {len(cycles)} cycles analyzed, {len(signals)} signals detected",
+        },
+    )
+
     print(
         json.dumps(
             {
@@ -171,8 +190,7 @@ def cmd_review(args: argparse.Namespace) -> int:
                 "cycles_analyzed": len(cycles),
                 "signals_detected": len(signals),
                 "evolution_md": str(evolution_md),
-                "auto_apply": bool(config.get("auto_apply", False)),
-                "next_step": "Edit SKILL.md / scripts based on EVOLUTION.md, then log this evolution cycle.",
+                "next_step": "Run `evolve.py snapshot`, then edit SKILL.md / scripts based on EVOLUTION.md (no auto apply).",
             },
             ensure_ascii=False,
             indent=2,
@@ -204,12 +222,12 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_review = sub.add_parser("review", help="自己進化レビューを実行し EVOLUTION.md に提案を追記")
-    p_review.add_argument("--skill-path", default=".", help="対象スキルのルート")
+    p_review.add_argument("--skill-path", default=None, help="対象スキルのルート (既定: このスクリプトの親ディレクトリ)")
     p_review.add_argument("--window", type=int, default=0, help="観測する直近サイクル数 (0=しきい値を流用)")
     p_review.set_defaults(func=cmd_review)
 
     p_snap = sub.add_parser("snapshot", help="現行 SKILL.md / scripts / references のスナップショットを保存")
-    p_snap.add_argument("--skill-path", default=".")
+    p_snap.add_argument("--skill-path", default=None, help="対象スキルのルート (既定: このスクリプトの親ディレクトリ)")
     p_snap.set_defaults(func=cmd_snapshot)
 
     return parser

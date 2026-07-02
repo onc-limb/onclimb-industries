@@ -21,6 +21,9 @@ SHARED_REFS = ("pipeline_spec.md", "log_schema.md", "evolution_principles.md")
 
 KEBAB_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 
+# リポジトリの分類プレフィックス (.claude/skills/README.md / personas/<prefix>.md を参照)
+KNOWN_PREFIXES = ("jarvis", "friday", "arc-reactor", "ultron", "edith", "karen", "vision")
+
 
 def render_template(src: Path, dst: Path, mapping: dict[str, str]) -> None:
     text = src.read_text(encoding="utf-8")
@@ -42,6 +45,17 @@ def copy_shared_reference(name: str, dst_dir: Path) -> None:
 def cmd_scaffold(args: argparse.Namespace) -> int:
     if not KEBAB_RE.match(args.name):
         print(f"error: --name must be kebab-case (got {args.name!r})", file=sys.stderr)
+        return 2
+
+    if not args.allow_no_prefix and not any(
+        args.name.startswith(prefix + "-") for prefix in KNOWN_PREFIXES
+    ):
+        print(
+            f"error: --name must start with a known prefix {KNOWN_PREFIXES} "
+            f"(got {args.name!r}). See .claude/skills/README.md and personas/<prefix>.md, "
+            "or pass --allow-no-prefix to bypass.",
+            file=sys.stderr,
+        )
         return 2
 
     dest_parent = Path(args.dest).expanduser().resolve()
@@ -134,7 +148,11 @@ def cmd_scaffold(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--name", required=True, help="kebab-case のスキル名")
+    parser.add_argument(
+        "--name",
+        required=True,
+        help=f"kebab-case のスキル名。既知プレフィックス {KNOWN_PREFIXES} で始めること",
+    )
     parser.add_argument("--dest", required=True, help="親ディレクトリ (生成先)")
     parser.add_argument("--description", required=True, help="SKILL description (トリガー文を含む)")
     parser.add_argument("--threshold", type=int, default=10, help="進化トリガーのサイクル数しきい値")
@@ -143,6 +161,11 @@ def build_parser() -> argparse.ArgumentParser:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="進化レビュー結果の自動適用 (既定: 有効, --no-auto-apply で無効化)",
+    )
+    parser.add_argument(
+        "--allow-no-prefix",
+        action="store_true",
+        help="既知プレフィックスで始まらない名前を許可する (原則使わない)",
     )
     parser.add_argument("--force", action="store_true", help="既存ディレクトリを上書き")
     parser.set_defaults(func=cmd_scaffold)

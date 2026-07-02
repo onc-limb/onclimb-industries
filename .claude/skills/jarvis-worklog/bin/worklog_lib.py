@@ -66,6 +66,12 @@ def _parse_scalar(s):
         return _unescape_double(s[1:-1])
     if len(s) >= 2 and s[0] == "'" and s[-1] == "'":
         return s[1:-1]
+    # 空のフローコレクション（keywords: [] 等）だけは特別扱いする。
+    # 文字列 "[]" のまま返すと、呼び出し側の in 判定で 1 文字ずつ誤爆するため。
+    if s == "[]":
+        return []
+    if s == "{}":
+        return {}
     low = s.lower()
     if low in ("null", "~"):
         return None
@@ -314,10 +320,11 @@ class Classifier:
         """確実な手がかり（①cwd → ②git リポジトリ名）のみで判定する。
         ヒットすれば (project_id, reason)、なければ None を返す。"""
         cwd = cwd or ""
-        # ① cwd パス一致（最優先）
+        # ① cwd パス一致（最優先）。完全一致かディレクトリ境界付き前方一致のみ
+        # （単純な部分一致は /path/gcp-sandbox が /path/gcp-sand に誤爆するため使わない）
         for p in self.projects:
             for g in (p.get("path_globs") or []):
-                if g and (cwd == g or cwd.startswith(g.rstrip("/") + "/") or g in cwd):
+                if g and (cwd == g.rstrip("/") or cwd.startswith(g.rstrip("/") + "/")):
                     return p["id"], "cwd:%s" % g
         # ② git リポジトリ名
         repo = git_repo_name(cwd) or (os.path.basename(cwd) if cwd else None)
@@ -332,21 +339,14 @@ class Classifier:
         ヒットすれば (project_id, reason)、なければ None を返す。"""
         blob = "\n".join(t for t in body_texts if t)[:20000]
         for p in self.projects:
-            for kw in (p.get("keywords") or []):
-                if kw and kw in blob:
+            kws = p.get("keywords") or []
+            if not isinstance(kws, list):
+                # 不正値（文字列等）を 1 文字ずつ走査して誤爆しないよう無視する
+                continue
+            for kw in kws:
+                if kw and isinstance(kw, str) and kw in blob:
                     return p["id"], "keyword:%s" % kw
         return None
-
-    def classify(self, cwd, body_texts):
-        """(project_id, reason) を返す。判定不能なら ('未分類', ...)。
-        ①cwd → ②repo → ③keyword の順で判定する（LLM を使わない決定論版）。"""
-        hit = self.classify_strong(cwd)
-        if hit:
-            return hit
-        hit = self.classify_keyword(body_texts)
-        if hit:
-            return hit
-        return "未分類", "no-match"
 
     def project_hints(self):
         """LLM に渡す既知プロジェクトの一覧（id + 典型パス + キーワード + 説明）。"""

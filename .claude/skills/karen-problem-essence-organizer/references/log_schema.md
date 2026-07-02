@@ -51,7 +51,10 @@ JSON Lines: 1 行 1 JSON オブジェクト。`event` で種別を区別。
 |---|---|---|---|
 | `noted_at` | string | yes | |
 | `note` | string | yes | 自由記述 |
-| `category` | string | no | `config-change` / `external` / `manual` など |
+| `category` | string | no | `config-change` / `external` / `manual` / `evolution-review` など |
+
+`category=evolution-review` は `evolve.py review` が完了時に自動追記する。
+`pipeline.py log-end` の進化トリガー判定 (cycles_since_review) はこの note でリセットされる。
 
 ## バリデーション
 

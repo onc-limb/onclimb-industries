@@ -43,8 +43,9 @@ def generate_cycle_id() -> str:
 def resolve_skill_root(skill_path: str | None) -> Path:
     if skill_path:
         return Path(skill_path).expanduser().resolve()
-    # default: current working directory
-    return Path.cwd().resolve()
+    # default: このスクリプトが置かれた scripts/ の親 = スキルルート
+    # (cwd に依存すると repo ルート等から実行したとき logs/ が迷子になるため)
+    return Path(__file__).resolve().parent.parent
 
 
 def load_config(skill_root: Path) -> dict:
@@ -150,22 +151,16 @@ def cmd_log_end(args: argparse.Namespace) -> int:
     }
     append_jsonl(jsonl, payload)
 
-    # 進化トリガー判定 = 最後の "evolution-review" 以降の start イベント数
+    # 進化トリガー判定 = 最後の evolution-review note 以降の start イベント数
+    # (evolve.py review が完了時に {"event":"note","category":"evolution-review"} を自動追記する)
     cycles_since_review = 0
     for entry in iter_jsonl(jsonl):
         if entry.get("__broken__"):
             continue
         if entry.get("event") == "start":
             cycles_since_review += 1
-        # evolution-review が end として記録される (actions に "evolve.py" / target=review を含む)
-        if entry.get("event") == "end":
-            actions_ = entry.get("actions") or []
-            if any(
-                (isinstance(a, dict) and a.get("tool") in ("evolve.py", "evolution-review"))
-                or (isinstance(a, str) and a in ("evolve.py", "evolution-review"))
-                for a in actions_
-            ):
-                cycles_since_review = 0
+        elif entry.get("event") == "note" and entry.get("category") == "evolution-review":
+            cycles_since_review = 0
 
     threshold = int(config.get("evolution_threshold", 10))
     evolution_due = cycles_since_review >= threshold
@@ -268,7 +263,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--skill-root", help="スキルのルートディレクトリ (既定: カレント)")
+    parser.add_argument("--skill-root", help="スキルのルートディレクトリ (既定: このスクリプトの親ディレクトリ)")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_start = sub.add_parser("log-start", help="サイクル開始を記録")

@@ -9,20 +9,30 @@ metadata:
 
 # {{SKILL_NAME}}
 
-{{SKILL_DESCRIPTION}}
-
 このスキルは **自己進化** を備えています。
 
 - 各サイクルを `logs/pipeline.jsonl` に記録する。
 - 完了条件は `success` / `failure` / `unknown` / `error` のいずれかを必ず付与する。
 - `pipeline.config.json` の `evolution_threshold` (既定 {{EVOLUTION_THRESHOLD}}) 回サイクルを回したら、`scripts/evolve.py review` を実行し `EVOLUTION.md` に提案を追記する。
-- 採否判断は `references/evolution_principles.md` (self-evolving-skill-creator から複製) に準拠。
+- 採否判断は `references/evolution_principles.md` (karen-self-evolving-skill-creator から複製) に準拠。
 
 ---
 
 ## いつ呼び出すか
 
 (TODO: トリガー条件を具体的に書く。例: 「PR 番号を渡して『レビューして』と言われたとき」「`*.dxf` 形式の図面が添付されたとき」)
+
+---
+
+## ワークフロー
+
+(TODO: このスキルの中核手順をステップで書く。入力の受け取り → 加工・生成 → 検証 の流れを具体化する)
+
+---
+
+## 出力
+
+(TODO: 生成物の形式・保存先・命名規則を書く。例: 「`<dir>/YYYY-MM-DD-<slug>.md` に Markdown で保存」)
 
 ---
 
@@ -57,15 +67,15 @@ python scripts/pipeline.py log-end \
 - **unknown**: 出力はしたが達成判定不能 (ユーザー確認待ち or 次サイクルで詰める)。
 - **error**: 例外 / 前提欠落で完遂できず。新サイクルで対処する。
 
-詳細は `references/pipeline_spec.md` (self-evolving-skill-creator 由来) を参照。
+詳細は `references/pipeline_spec.md` (karen-self-evolving-skill-creator 由来) を参照。
 
 ---
 
 ## 自己進化
 
 - ログが {{EVOLUTION_THRESHOLD}} 件溜まると進化レビューが発火。
-- `EVOLUTION.md` に提案を追記 (自動適用は既定で off)。
-- スナップショット: `python scripts/evolve.py snapshot` で `logs/evolutions/<ts>/before/` に現状保存。
+- `scripts/evolve.py review` は提案の起草 (`EVOLUTION.md` への追記) まで。適用は Claude が `evolve.py snapshot` → Edit → diff 保存の順に行う。
+- このスキルの `auto_apply` は `{{AUTO_APPLY}}` (true なら人手承認なしで適用してよい。`pipeline.config.json` で変更可)。
 - 適用後は進化サイクル自体も `pipeline.py log-end` で記録する (`--action evolve.py`)。
 
 ---

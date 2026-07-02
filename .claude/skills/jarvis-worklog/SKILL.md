@@ -57,7 +57,7 @@ classify は「誤分類より未分類優先」のため、`config/projects.yam
 
 1. `suggest_projects.py [date]` を実行する。`_unclassified` を cwd / git リポジトリ単位で集計し、
    projects.yaml 未登録の候補（`suggested_id` / `path_glob` / `repo` / `entries` / `sample_bodies`）を JSON で返す。
-2. 候補があれば **Claude が調査する**: 候補の `cwd`（や `path_glob`）の README / package.json / git remote 等を
+2. 候補があれば **Claude が調査する**: 候補の `cwds`（や `path_glob`）の README / package.json / git remote 等を
    読み、適切な `id`（顧客名は避け汎用 id・マスキング前提）を判断する。`id_conflict: true` は既存 id と
    衝突するので別名にする。`is_git_repo: false` や一過性の作業ディレクトリは登録を見送ってよい。
 3. **ユーザーに確認**（`AskUserQuestion`）: 「この cwd を `<id>` として登録してよいか / 見送るか」。
@@ -98,7 +98,7 @@ classify は「誤分類より未分類優先」のため、`config/projects.yam
 - **整理のみ**: `python3 "$SKILL/bin/summarize.py" [YYYY-MM-DD] [project] [--formats project,tech] [--dry-run]`
   - `claude -p`（`--model sonnet`＝現行 Sonnet に追従）をヘッドレス実行し `digests/{project,tech}/` に整理情報を生成。`claude` が無い/失敗時はプロンプトを `.prompt.txt` に保存。
   - tool_result（ツール実行の生出力）は情報密度が低いので先頭/末尾のみ残して圧縮する。
-  - 1 ファイルのログが上限（`MAX_LOG_CHARS`）を超える場合は、時系列のまま文字数ベースで時間帯分割し、各時間帯の整理を `## 【時間帯 i/n: HH:MM–HH:MM】` 見出しで 1 ファイルに連結する。
+  - 1 ファイルのログが上限（`MAX_LOG_CHARS`）を超える場合は、時系列のまま文字数ベースで時間帯分割し、各時間帯の整理を `## 【時間帯 i/n: HH:MM–HH:MM】` 見出しで 1 ファイルに連結する（各時間帯は H1 と冒頭の TL;DR/成果サマリを持たず、`##` 見出しから始まる）。
   - 複数の整理を並列生成する。同時数は環境変数 `WORKLOG_SUMMARIZE_CONCURRENCY`（既定 4）で調整可能。上げるほど速いが Max プランのレート枠に当たりやすくなる。
 - **退避**: `bash "$SKILL/bin/archive.sh" [YYYY-MM] [--force] [--check]`
 

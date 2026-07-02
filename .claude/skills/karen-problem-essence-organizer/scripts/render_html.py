@@ -7,10 +7,10 @@
 
   topic: "..."
   conclusion:
-    problem: "..."
-    done: "..."
-    proposal: "..."
-  reasoning:
+    problem: "..."       # 各フィールドは str または list を受け付ける。
+    done: "..."          #   str  : "\n\n" 区切りで複数段落 <p> に分割
+    proposal: "..."      #   list : <ul><li> の箇条書き
+  reasoning:             #   空値 : (未記入) と明示表示
     situation: "..."
     complication: "..."
   proposal:
@@ -54,6 +54,7 @@ section { page-break-inside: avoid; margin-bottom: 2em; }
 .missing-info table { border-collapse: collapse; width: 100%; margin-top: .5em; }
 .missing-info th, .missing-info td { border: 1px solid #ccc; padding: .4em .8em; text-align: left; }
 .missing-info th { background: #fff3e6; color: var(--warn); }
+.muted { color: var(--muted); }
 ul { padding-left: 1.2em; }
 @media print {
   body { margin: 0; max-width: none; }
@@ -65,6 +66,24 @@ ul { padding-left: 1.2em; }
 
 def esc(s: Any) -> str:
     return html.escape(str(s)) if s is not None else ""
+
+
+def render_rich(value: Any, indent: str = "  ") -> str:
+    """str | list | None を HTML ブロックに変換する。
+
+    - None / 空値: (未記入) を明示表示 (無言で空にしない)
+    - list      : <ul><li> の箇条書き
+    - str       : "\\n\\n" 区切りで複数の <p> に分割
+    """
+    if isinstance(value, list):
+        if not value:
+            return f"{indent}<p class=\"muted\">(未記入)</p>\n"
+        items = "".join(f"{indent}  <li>{esc(v)}</li>\n" for v in value)
+        return f"{indent}<ul>\n{items}{indent}</ul>\n"
+    paragraphs = [p.strip() for p in str(value or "").split("\n\n") if p.strip()]
+    if not paragraphs:
+        return f"{indent}<p class=\"muted\">(未記入)</p>\n"
+    return "".join(f"{indent}<p>{esc(p)}</p>\n" for p in paragraphs)
 
 
 def load_input(path: Path) -> dict[str, Any]:
@@ -82,9 +101,9 @@ def render_conclusion(payload: dict[str, Any]) -> str:
     return (
         "<section class=\"conclusion\">\n"
         "  <h2>結論</h2>\n"
-        f"  <p><strong>課題:</strong> {esc(p.get('problem'))}</p>\n"
-        f"  <p><strong>解決状態 (Done):</strong> {esc(p.get('done'))}</p>\n"
-        f"  <p><strong>提案:</strong> {esc(p.get('proposal'))}</p>\n"
+        "  <h3>課題</h3>\n" + render_rich(p.get("problem")) +
+        "  <h3>解決状態 (Done)</h3>\n" + render_rich(p.get("done")) +
+        "  <h3>提案</h3>\n" + render_rich(p.get("proposal")) +
         "</section>\n"
     )
 
@@ -94,8 +113,8 @@ def render_reasoning(payload: dict[str, Any]) -> str:
     return (
         "<section>\n"
         "  <h2>根拠</h2>\n"
-        f"  <h3>現状 (Situation)</h3>\n  <p>{esc(p.get('situation'))}</p>\n"
-        f"  <h3>何が問題か (Complication)</h3>\n  <p>{esc(p.get('complication'))}</p>\n"
+        "  <h3>現状 (Situation)</h3>\n" + render_rich(p.get("situation")) +
+        "  <h3>何が問題か (Complication)</h3>\n" + render_rich(p.get("complication")) +
         "</section>\n"
     )
 
@@ -105,9 +124,9 @@ def render_proposal(payload: dict[str, Any]) -> str:
     return (
         "<section>\n"
         "  <h2>提案</h2>\n"
-        f"  <h3>目指す Done 状態</h3>\n  <p>{esc(p.get('done_detail'))}</p>\n"
-        f"  <h3>手段</h3>\n  <p>{esc(p.get('solution'))}</p>\n"
-        f"  <h3>撤退条件 / 不確実性</h3>\n  <p>{esc(p.get('retreat'))}</p>\n"
+        "  <h3>目指す Done 状態</h3>\n" + render_rich(p.get("done_detail")) +
+        "  <h3>手段</h3>\n" + render_rich(p.get("solution")) +
+        "  <h3>撤退条件 / 不確実性</h3>\n" + render_rich(p.get("retreat")) +
         "</section>\n"
     )
 
@@ -117,7 +136,7 @@ def render_call_to_action(payload: dict[str, Any]) -> str:
     decisions = p.get("decisions") or []
     missing = p.get("missing_info") or []
 
-    decisions_html = "".join(f"    <li>{esc(d)}</li>\n" for d in decisions) or "    <li>(未記入)</li>\n"
+    decisions_html = "".join(f"    <li>{esc(d)}</li>\n" for d in decisions) or "    <li class=\"muted\">(未記入)</li>\n"
 
     rows_html = ""
     for row in missing:
@@ -130,7 +149,7 @@ def render_call_to_action(payload: dict[str, Any]) -> str:
             "</tr>\n"
         )
     if not rows_html:
-        rows_html = "      <tr><td colspan=\"4\">(未記入)</td></tr>\n"
+        rows_html = "      <tr><td colspan=\"4\" class=\"muted\">(未記入)</td></tr>\n"
 
     return (
         "<section>\n"

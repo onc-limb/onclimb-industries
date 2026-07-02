@@ -6,7 +6,8 @@
   1) 内部メタデータを捨てて user/assistant/tool_use/tool_result(/thinking) のみ抽出
   2) redaction.yaml のマスキングを適用
   3) §4 構造へ変換し raw/YYYY-MM-DD.jsonl(JST) へ追記
-を行う。raw/.cursor で取り込み済み行数を管理し、冪等に再実行できる。
+を行う。raw/.cursor で取り込み済みバイト位置を管理し、冪等に再実行できる
+（サイズ不変のファイルは読まずにスキップ、追記分だけ seek して読む）。
 SessionEnd Hook / 毎日 cron / PreCompact Hook / 手動、どこから呼ばれても安全。
 """
 import glob
@@ -119,8 +120,8 @@ def iter_cli_files(path):
 
 
 def build_desktop_sessions(sources):
-    """desktop_meta から cliSessionId -> title のマップを作る。"""
-    mapping = {}
+    """desktop_meta からデスクトップ由来の cliSessionId 集合を作る（source 判定に使う）。"""
+    ids = set()
     for src in sources:
         if src.get("type") != "desktop_meta":
             continue
@@ -137,8 +138,8 @@ def build_desktop_sessions(sources):
                 continue
             cli_sid = o.get("cliSessionId") or o.get("sessionId")
             if cli_sid:
-                mapping[cli_sid] = o.get("title")
-    return mapping
+                ids.add(cli_sid)
+    return ids
 
 
 def load_cursor(home):
@@ -191,16 +192,39 @@ def main():
         src_tag = src.get("tag")  # 明示タグがあれば source として優先する
         for fpath in iter_cli_files(root):
             files_seen += 1
-            start = cursor.get(fpath, 0)
+            # カーソルは {"offset": 取り込み済みバイト位置, "size": 前回サイズ}。
+            # サイズが変わっていなければ開かずにスキップし、増えていれば追記分だけ seek して読む。
+            cur = cursor.get(fpath)
             try:
-                with open(fpath, "r", encoding="utf-8") as fh:
-                    lines = fh.readlines()
+                size = os.path.getsize(fpath)
+            except OSError as e:
+                sys.stderr.write("[collect] 読込失敗 %s: %s\n" % (fpath, e))
+                continue
+            skip_lines = 0
+            if isinstance(cur, dict):
+                offset = int(cur.get("offset") or 0)
+                if size == int(cur.get("size") or 0):
+                    continue
+                if size < offset:
+                    offset = 0  # 縮んだ＝書き直された可能性があるので最初から読み直す
+            elif isinstance(cur, int):
+                # 旧形式（取り込み済み行数）からの移行: 一度だけ全読みして行数分スキップし、
+                # 保存時にバイト位置の新形式へ置き換える
+                offset = 0
+                skip_lines = cur
+            else:
+                offset = 0
+            try:
+                with open(fpath, "rb") as fh:
+                    fh.seek(offset)
+                    data = fh.read()
             except Exception as e:
                 sys.stderr.write("[collect] 読込失敗 %s: %s\n" % (fpath, e))
                 continue
-            if len(lines) <= start:
-                continue
-            for ln in lines[start:]:
+            lines = data.decode("utf-8", errors="replace").splitlines()
+            if skip_lines:
+                lines = lines[skip_lines:]
+            for ln in lines:
                 ln = ln.strip()
                 if not ln:
                     continue
@@ -216,7 +240,8 @@ def main():
                         date = "undated"
                     writer_for(date).write(json.dumps(e, ensure_ascii=False) + "\n")
                     total_new += 1
-            cursor[fpath] = len(lines)
+            pos = offset + len(data)  # 実際に読み終えたバイト位置（getsize 後の追記も含む）
+            cursor[fpath] = {"offset": pos, "size": pos}
 
     for fh in writers.values():
         fh.close()

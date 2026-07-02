@@ -44,7 +44,9 @@ python scripts/render_html.py \
 
 - 進化レビュー: `python scripts/evolve.py review`
 - スナップショット: `python scripts/evolve.py snapshot`
-- `pipeline.config.json` の `auto_apply` が `true` (既定) なら、`scripts/pipeline.py` と `references/dialogue_style.md` 以外を自動適用。
+- `evolve.py review` は **提案の起草まで** (EVOLUTION.md への追記と evolution-review note の記録)。
+  適用は EVOLUTION.md を読んだ Claude が `evolve.py snapshot` 実行後に Edit で行う (自動適用は無い)。
+  ただし `scripts/pipeline.py` と `references/dialogue_style.md` は進化対象外。
 
 ## 自己進化ログの場所
 

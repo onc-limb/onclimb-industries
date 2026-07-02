@@ -73,8 +73,10 @@
 ## 4. しきい値判定
 
 `pipeline.py log-end` は終了イベント追記後に `pipeline.config.json` の `evolution_threshold` を読みます。
-直近の進化レビュー以降にカウントされた **start イベントの累計** が閾値以上なら、戻り値で `evolution_due=true` を返します。
+直近の **evolution-review note** (`event=note`, `category=evolution-review`) 以降にカウントされた
+**start イベントの累計** が閾値以上なら、戻り値で `evolution_due=true` を返します。
 SKILL.md / 子スキルの利用フローは `evolution_due=true` を受け取ったら `evolve.py review` を呼び出さねばなりません。
+`evolve.py review` は完了時にこの note を自動追記するため、カウンタはリセットされます。
 
 ---
 
@@ -106,9 +108,9 @@ user_turn=u123
 
 ## 7. 進化レビューがログに書く行
 
-進化レビュー自体も 1 サイクルとして `pipeline.jsonl` に記録する。
+`evolve.py review` は完了時に、以下の note を `pipeline.jsonl` へ **自動追記** する。
+`pipeline.py log-end` はこの note を検知して進化カウンタ (cycles_since_review) をリセットする。
 
 ```json
-{"event":"start","cycle_id":"...","skill_name":"...","instruction":"evolution review (threshold reached)"}
-{"event":"end","cycle_id":"...","actions":[{"tool":"evolve.py","target":"review"}],"completion_state":"success","completion_reason":"EVOLUTION.md にN件の提案を追記"}
+{"event":"note","cycle_id":"...","skill_name":"...","noted_at":"...","category":"evolution-review","note":"evolve.py review: N cycles analyzed, M signals detected"}
 ```

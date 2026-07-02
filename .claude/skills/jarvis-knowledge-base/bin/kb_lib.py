@@ -16,6 +16,7 @@ import os
 import re
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from shutil import which
 
@@ -136,7 +137,13 @@ def run_claude(prompt, timeout=600):
         return False, "claude CLI が見つかりません"
     try:
         proc = subprocess.run(
-            [claude, "-p", "--output-format", "text"],
+            # ツール使用を禁止し、テキスト生成のみさせる（エージェント的に振る舞い
+            # 「書き出しました」等のメタ応答を返す失敗モードの抑止）。
+            # --tools "" は組み込みツールの全無効化（claude --help に明記）。
+            # ASSUMPTION: --disallowedTools "*" は MCP 等を含む全ツール名にマッチする想定
+            #             （フラグ自体は claude --help で確認済みだがパターン仕様は未確認のため併用）。
+            [claude, "-p", "--output-format", "text",
+             "--tools", "", "--disallowedTools", "*"],
             input=prompt, capture_output=True, text=True, timeout=timeout,
         )
     except subprocess.TimeoutExpired:
@@ -149,6 +156,19 @@ def run_claude(prompt, timeout=600):
     if not out:
         return False, "claude 出力が空"
     return True, out
+
+
+def run_claude_many(prompts, timeout=600, concurrency=3):
+    """複数プロンプトを最大 concurrency 件まで同時に claude へ投げ、
+    入力順で [(ok, output_or_error), ...] を返す（worklog/summarize.py と同方式）。"""
+    if len(prompts) <= 1:
+        return [run_claude(p, timeout=timeout) for p in prompts]
+    results = [None] * len(prompts)
+    with ThreadPoolExecutor(max_workers=min(concurrency, len(prompts))) as ex:
+        futs = {ex.submit(run_claude, p, timeout): idx for idx, p in enumerate(prompts)}
+        for fut, idx in futs.items():
+            results[idx] = fut.result()
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -171,7 +191,13 @@ def extract_json(text):
     if not candidates:
         raise ValueError("JSON 開始記号が見つかりません")
     start = min(candidates)
-    # start から末尾を縮めながら json.loads を試す（末尾の余分なテキストを許容）
+    # raw_decode で先頭の JSON 値だけを取り出す（末尾の余分なテキストを許容・O(n)）
+    try:
+        obj, _ = json.JSONDecoder().raw_decode(t, start)
+        return obj
+    except ValueError:
+        pass
+    # フォールバック: 末尾を縮めながら json.loads を試す（raw_decode で拾えない出力への保険）
     for end in range(len(t), start, -1):
         chunk = t[start:end].strip()
         if not chunk:

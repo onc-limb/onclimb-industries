@@ -40,21 +40,25 @@
     line-height:1.7;
     -webkit-font-smoothing:antialiased;
   }
-  /* 1スライド = 1画面。アクティブな section だけ表示 */
+  /* 1スライド = 1画面。JS 有効時はアクティブな section だけ表示、
+     JS 無効時(メールの HTML プレビュー等)は全 section を縦並びで表示 */
   .slide{
-    display:none;
+    display:flex;
     min-height:100vh;
     padding:6vh 8vw;
     flex-direction:column;
     justify-content:center;
   }
-  .slide.active{display:flex;}
+  .js .slide{display:none;}
+  .js .slide.active{display:flex;}
 
   /* 表紙 */
   .cover{justify-content:center;align-items:flex-start;}
   .cover .bar{width:64px;height:6px;background:var(--accent2);margin-bottom:1.6rem;border-radius:3px;}
   .cover h1{font-size:2.6rem;font-weight:700;letter-spacing:.02em;color:var(--accent);}
   .cover .meta{margin-top:1.1rem;color:var(--sub);font-size:1.1rem;}
+  .cover .hint{margin-top:2.2rem;color:var(--sub);font-size:.85rem;display:none;}
+  .js .cover .hint{display:block;}
 
   /* スライド見出し */
   .slide h2{
@@ -114,7 +118,10 @@
   @media print{
     body{background:#fff;}
     .slide{display:flex!important;min-height:auto;page-break-after:always;padding:6vh 8vw;}
+    .slide:last-of-type{page-break-after:auto;}
+    .status,.label{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .nav{display:none;}
+    .cover .hint{display:none!important;}
     body{font-size:14px;}
   }
 </style>
@@ -126,6 +133,7 @@
     <div class="bar"></div>
     <h1>{{date}} 作業報告</h1>
     <div class="meta">担当: {{reporter}}</div>
+    <div class="hint">画面の右半分をクリック、または → キーで次のページへ（左半分 / ← キーで戻る）</div>
   </section>
 
   <!-- サマリ -->
@@ -215,6 +223,8 @@
 
 <script>
   // 最小限のページ送り（外部依存なし）: 矢印キー / クリックで section を切替
+  // JS 無効環境では .js が付かず、全 section が縦並び表示のまま（プログレッシブエンハンスメント）
+  document.documentElement.classList.add('js');
   var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
   var i = 0;
   document.getElementById('total').textContent = slides.length;
@@ -227,7 +237,13 @@
     if(e.key === 'ArrowRight' || e.key === 'PageDown') show(i + 1);
     if(e.key === 'ArrowLeft'  || e.key === 'PageUp')   show(i - 1);
   });
-  document.addEventListener('click', function(){ show(i + 1); });
+  // 右半分クリックで前進、左半分で後退。テキスト選択中は切り替えない
+  document.addEventListener('click', function(e){
+    var sel = window.getSelection();
+    if(sel && String(sel)) return;
+    if(e.clientX > window.innerWidth / 2) show(i + 1);
+    else show(i - 1);
+  });
   show(0);
 </script>
 </body>

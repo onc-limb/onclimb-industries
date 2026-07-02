@@ -22,6 +22,8 @@
   F2: { important: [...], auxiliary: [...] }
   F3: { important: [...], auxiliary: [...] }
   F4: { important: [...], auxiliary: [...] }
+  open_questions:        # 批判的指摘・未回答のオープン質問 (未解決の問い章になる)
+    - "..."
   retrospective:
     - "..."
   split:
@@ -32,6 +34,13 @@
       F4: ...
 
 `split` があれば複数課題として `<topic>__<issue-slug>.md` で分割書き出し。
+
+`--mode retrospective` のときは振り返りレポート専用スキーマ (`<topic>__retrospective.md`):
+
+  facts: ["..."]        # 起きたこと
+  drift: ["..."]        # 目的を見失った瞬間
+  means_first: ["..."]  # 手段に飛びついた瞬間
+  learning: ["..."]     # 学び
 """
 from __future__ import annotations
 
@@ -89,12 +98,52 @@ def render_retrospective(items: list[str] | None) -> str:
     return "## 振り返り\n\n" + render_bullet_list(items) + "\n"
 
 
+def render_open_questions(items: list[str] | None) -> str:
+    """批判的指摘とオープン質問のうち、未回答のまま残ったものを章として残す。"""
+    if not items:
+        return ""
+    return "## 未解決の問い (Open Questions)\n\n" + render_bullet_list(items) + "\n"
+
+
+RETRO_SECTIONS = [
+    ("facts", "起きたこと (Facts)"),
+    ("drift", "目的を見失った瞬間 (Drift Detection)"),
+    ("means_first", "手段に飛びついた瞬間 (Means-First Detection)"),
+    ("learning", "学び (Learning)"),
+]
+
+
+def render_retrospective_document(
+    topic: str,
+    data: dict[str, Any],
+    phase_at_close: str,
+) -> str:
+    """モード (c) 振り返りレポート。references/output_formats.md §3 準拠。"""
+    created = dt.date.today().isoformat()
+    front_matter = (
+        "---\n"
+        f"topic: {topic}\n"
+        f"created: {created}\n"
+        f"phase_at_close: {phase_at_close}\n"
+        "mode: retrospective\n"
+        "---\n\n"
+    )
+    body = f"# 振り返り {topic}\n\n"
+    for key, label in RETRO_SECTIONS:
+        body += f"## {label}\n\n{render_bullet_list(data.get(key))}\n"
+    body += render_open_questions(data.get("open_questions"))
+    return front_matter + body
+
+
 def render_document(
     topic: str,
     data: dict[str, Any],
     phase_at_close: str,
     mode: str,
 ) -> str:
+    if mode == "retrospective":
+        return render_retrospective_document(topic, data, phase_at_close)
+
     created = dt.date.today().isoformat()
     summary = data.get("summary", "(1 行サマリー未記入)")
 
@@ -109,6 +158,7 @@ def render_document(
     body = f"# {topic}\n\n> {summary}\n\n"
     for key, label in PHASES:
         body += render_phase(key, label, data.get(key))
+    body += render_open_questions(data.get("open_questions"))
     body += render_retrospective(data.get("retrospective"))
     return front_matter + body
 
@@ -123,7 +173,9 @@ def write_one(
 ) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     file_topic = f"{topic}__{issue_slug}" if issue_slug else topic
-    path = out_dir / f"{file_topic}.md"
+    # 振り返りレポートは `<date>__retrospective.md` (--topic に日付を渡す想定)
+    file_name = f"{file_topic}__retrospective.md" if mode == "retrospective" else f"{file_topic}.md"
+    path = out_dir / file_name
     path.write_text(render_document(file_topic, data, phase_at_close, mode), encoding="utf-8")
     return path
 
