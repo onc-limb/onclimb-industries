@@ -46,7 +46,7 @@
 | `friday-proposal-generator` | 共有ドキュメント系 |
 | `friday-tech-article-drafter` | 共有ドキュメント系 |
 | `friday-design-doc-generator` | 共有ドキュメント系 |
-| `arc-reactor-pr-reviewer` | コーディング・レビュー系 |
+| `arc-reactor-code-review` | コーディング・レビュー系 |
 | `arc-reactor-test-scaffolder` | コーディング・レビュー系 |
 | `arc-reactor-codebase-onboarding` | コーディング・レビュー系 |
 | `arc-reactor-tech-debt-auditor` | コーディング・レビュー系 |

@@ -2,7 +2,7 @@
 
 実装・リファクタリング・コードレビューを担うスキル群の共通ルール。
 
-所属スキル: `arc-reactor-pr-reviewer` / `arc-reactor-test-scaffolder` / `arc-reactor-codebase-onboarding` / `arc-reactor-tech-debt-auditor`
+所属スキル: `arc-reactor-code-review` / `arc-reactor-test-scaffolder` / `arc-reactor-codebase-onboarding` / `arc-reactor-tech-debt-auditor`
 
 ## 共通の役割
 
