@@ -2,7 +2,7 @@
 
 リサーチ・データ収集・分析を担うスキル群の共通ルール。
 
-所属スキル: （現在なし）
+所属スキル: `edith-tech-selection-research` / `edith-freelance-rate-research` / `edith-competitor-market-scan`
 
 ## 共通の役割
 

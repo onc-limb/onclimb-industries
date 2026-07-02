@@ -17,5 +17,39 @@
 # high-dividend-stock-screener: 調査済み台帳・生成リスト・EDINET キャッシュ（機密/再配布不可を含みうるため追跡しない）
 /stock-data/
 
+# tech-article-drafter: 記事ドラフトと NG ワード辞書（マスキング前の機密・実名を含みうるため追跡しない）
+/articles/
+
+# invoice-builder: 請求書・取引先設定（取引先実名・単価・口座情報を含むため追跡しない）
+/invoice-data/
+
+# todo-management: 日次ジャーナル（個人の作業内容・機密を含みうるため追跡しない）
+/journal/
+
+# timesheet-aggregator: 稼働エントリ・稼働サマリ（案件情報を含みうるため追跡しない）
+/timesheet-data/
+
+# tax-prep-organizer: 取引データ・科目別集計（個人の金銭情報を含むため追跡しない）
+/tax-data/
+
+# household-budget-manager: 家計エントリ・固定費/収入設定・レシート・月次レポート（個人の金銭情報のため追跡しない）
+/budget-data/
+
+# proposal-generator: 提案書・見積ドラフト（クライアント名・金額を含むため追跡しない）
+/proposals/
+
+# competitor-market-scan: 市場スキャンレポート（案件固有情報を含みうるため追跡しない）
+/market-scan/
+
+# tech-selection-research: 技術選定の記録（案件要件を含みうるため追跡しない）
+/tech-selection/
+
+# learning-roadmap: 学習ロードマップ（個人の学習記録のため追跡しない）
+/learning-roadmaps/
+
+# Python: バイトコードキャッシュ（スクリプト実行時の副産物のため追跡しない）
+__pycache__/
+*.pyc
+
 # macOS
 .DS_Store

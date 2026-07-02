@@ -2,7 +2,7 @@
 
 事務作業・金融・資産運用に関わるスキル群の共通ルール。
 
-所属スキル: `ultron-high-dividend-stock-screener`
+所属スキル: `ultron-high-dividend-stock-screener` / `ultron-invoice-builder` / `ultron-timesheet-aggregator` / `ultron-tax-prep-organizer` / `ultron-contract-review-assistant` / `ultron-household-budget-manager`
 
 ## 共通の役割
 

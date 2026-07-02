@@ -2,7 +2,7 @@
 
 用途が固定されない汎用・一時利用のスキル群の共通ルール。
 
-所属スキル: `karen-problem-essence-organizer` / `karen-self-evolving-skill-creator`
+所属スキル: `karen-problem-essence-organizer` / `karen-self-evolving-skill-creator` / `karen-learning-roadmap` / `karen-meeting-prep-briefer`
 
 ## 共通の役割
 

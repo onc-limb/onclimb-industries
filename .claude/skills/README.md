@@ -40,11 +40,29 @@
 | `jarvis-worklog` | 作業記録・一次資料系 |
 | `jarvis-knowledge-base` | 作業記録・一次資料系 |
 | `jarvis-record` | 作業記録・一次資料系 |
+| `jarvis-todo-management` | 作業記録・一次資料系 |
 | `friday-daily-report` | 共有ドキュメント系 |
 | `friday-giziroku` | 共有ドキュメント系 |
+| `friday-proposal-generator` | 共有ドキュメント系 |
+| `friday-tech-article-drafter` | 共有ドキュメント系 |
+| `friday-design-doc-generator` | 共有ドキュメント系 |
+| `arc-reactor-pr-reviewer` | コーディング・レビュー系 |
+| `arc-reactor-test-scaffolder` | コーディング・レビュー系 |
+| `arc-reactor-codebase-onboarding` | コーディング・レビュー系 |
+| `arc-reactor-tech-debt-auditor` | コーディング・レビュー系 |
+| `edith-tech-selection-research` | 調査・データ収集・分析系 |
+| `edith-freelance-rate-research` | 調査・データ収集・分析系 |
+| `edith-competitor-market-scan` | 調査・データ収集・分析系 |
 | `ultron-high-dividend-stock-screener` | 事務・金融・資産系 |
+| `ultron-invoice-builder` | 事務・金融・資産系 |
+| `ultron-timesheet-aggregator` | 事務・金融・資産系 |
+| `ultron-tax-prep-organizer` | 事務・金融・資産系 |
+| `ultron-contract-review-assistant` | 事務・金融・資産系 |
+| `ultron-household-budget-manager` | 事務・金融・資産系 |
 | `karen-problem-essence-organizer` | 一時利用・汎用系 |
 | `karen-self-evolving-skill-creator` | 一時利用・汎用系 |
+| `karen-learning-roadmap` | 一時利用・汎用系 |
+| `karen-meeting-prep-briefer` | 一時利用・汎用系 |
 
 ## 補足
 

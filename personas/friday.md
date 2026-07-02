@@ -3,7 +3,7 @@
 **上司・クライアント・チームメンバーに共有する**発表資料やプロジェクトドキュメントの作成に
 特化したスキル群の共通ルール。読み手は自分ではなく他者。
 
-所属スキル: `friday-daily-report` / `friday-giziroku`
+所属スキル: `friday-daily-report` / `friday-giziroku` / `friday-proposal-generator` / `friday-tech-article-drafter` / `friday-design-doc-generator`
 
 ## 共通の役割
 
