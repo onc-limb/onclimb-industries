@@ -76,6 +76,14 @@ classify は「誤分類より未分類優先」のため、`config/projects.yam
   - `tech` … 技術者視点。TL;DR / 技術選定と判断 / トラブルシュート表 / 再現手順(Runbookの種) / 検証結果 / 学び(状況→結論→根拠→適用条件) / スキル証跡・タグ。
     → 技術ナレッジ・スキル証跡、手順書/Runbook、技術報告書/技術メモ の素材。
 - 完了後、生成された整理情報のパスと要点をユーザーに提示する。
+- **ToDo 台帳とのバッチ突き合わせ**（jarvis-todo-management との連携。取りこぼし回収）:
+  digest 提示後に `todo-data/todos.json` と突き合わせる。
+  1. digest の「作業内容」にあるのに台帳に無い作業は、`todo.py add --source-type worklog
+     --source-ref <digest パス> --status done` で事実として自動追記し、一言通知する。
+     台帳にあるものは `start` / `done` で状態を更新する。
+  2. digest の「次の予定・次にやること」「課題・判断待ち」は `--status inbox` で収穫する
+     （コミットメントにするかは todo 側の棚卸しで確定。追記のたびに一言通知）。
+  手順の詳細は jarvis-todo-management の SKILL.md（フロー C / F）を参照。台帳が無い環境ではスキップしてよい。
 - 日付やプロジェクトを限定したい場合は引数を渡す:
   - 特定日・全プロジェクト: `summarize.py 2026-06-22`
   - 特定日・特定プロジェクト: `summarize.py 2026-06-22 onclimb-industries`

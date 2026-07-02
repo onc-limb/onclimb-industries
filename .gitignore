@@ -23,8 +23,8 @@
 # invoice-builder: 請求書・取引先設定（取引先実名・単価・口座情報を含むため追跡しない）
 /invoice-data/
 
-# todo-management: 日次ジャーナル（個人の作業内容・機密を含みうるため追跡しない）
-/journal/
+# todo-management: タスク台帳・変更ログ（個人の作業内容・機密を含みうるため追跡しない）
+/todo-data/
 
 # timesheet-aggregator: 稼働エントリ・稼働サマリ（案件情報を含みうるため追跡しない）
 /timesheet-data/
@@ -47,9 +47,10 @@
 # learning-roadmap: 学習ロードマップ（個人の学習記録のため追跡しない）
 /learning-roadmaps/
 
-# Python: バイトコードキャッシュ（スクリプト実行時の副産物のため追跡しない）
+# Python: バイトコードキャッシュ・仮想環境（スクリプト実行時の副産物のため追跡しない）
 __pycache__/
 *.pyc
+.venv/
 
 # macOS
 .DS_Store
