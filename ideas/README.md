@@ -15,6 +15,7 @@
 4. 没アイデアは削除せず `status: dropped` にして、判断根拠を `## 没にした理由` セクションに追記する。
 5. 似たアイデアが既にあるか必ず確認 (`ls ideas/`) してから新規作成する。重複なら統合 or 派生として書く。
 6. まだ詰めていない「作るか未定」の候補は、1 ファイルに起こさず [`skill-candidates.md`](skill-candidates.md) の一覧表に概要だけ足す。温めることにしたら TEMPLATE.md に展開する。
+7. **既存スキル**への不満・改善点は新規アイデアではなく [`skill-feedback.md`](skill-feedback.md)（中央インボックス）にためる。レビューで「守備範囲外＝新スキルが必要」と判明したものだけ skill-candidates.md へ転記する。
 
 ## status の運用
 
