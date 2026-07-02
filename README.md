@@ -11,9 +11,9 @@ AI Agent Skills
 ├── .claude/skills/   # スキル本体（<prefix>-<name> で命名。命名規約は .claude/skills/README.md）
 │   ├── jarvis-worklog/                        # 会話・操作ログを収集・分類し整理情報を生成
 │   ├── jarvis-knowledge-base/                 # tech digest から Obsidian 形式のナレッジベースを生成
-│   ├── friday-record/                         # 依頼者向け報告の一次記録（案件×対応日）
-│   ├── friday-deck/                           # 一次記録から報告用 HTML スライドを生成
-│   ├── friday-giziroku/                       # 文字起こしから議事録を生成
+│   ├── jarvis-record/                         # worklog から当日の作業を機械的にまとめた一次記録（案件×対応日）
+│   ├── friday-daily-report/                   # 一次記録から依頼者向けの日次報告 HTML スライドを生成
+│   ├── friday-giziroku/                       # 文字起こしから共有用の議事録を生成
 │   ├── ultron-high-dividend-stock-screener/   # 日本の高配当株を screening し候補リスト化
 │   ├── karen-problem-essence-organizer/       # 課題発見〜手段検討の思考整理
 │   └── karen-self-evolving-skill-creator/     # 自己進化パイプライン付きスキルの生成

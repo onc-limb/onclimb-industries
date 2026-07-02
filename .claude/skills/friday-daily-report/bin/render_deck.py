@@ -55,7 +55,7 @@ def repo_root():
         )
         return out.decode().strip()
     except Exception:
-        # git 配下でなければスキルから 3 つ上 (.claude/skills/friday-deck -> repo)
+        # git 配下でなければスキルから 3 つ上 (.claude/skills/friday-daily-report -> repo)
         return os.path.dirname(os.path.dirname(os.path.dirname(SKILL_DIR)))
 
 

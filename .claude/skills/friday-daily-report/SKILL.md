@@ -1,16 +1,16 @@
 ---
-name: friday-deck
+name: friday-daily-report
 description: 依頼者向け日次報告スライド生成スキル(2段階のStage2)。report-record が作った案件×日付の作業記録(Markdown)を入力に、対象日の全案件を横断集約し、非エンジニア向けに専門用語を排した HTML スライド1本を固定テンプレートで生成する。「今日の報告スライド作って」「依頼者向けの日報スライドにして」「6/27 を報告資料に」「今週分を報告スライドに」等で起動。構成は 表紙 → サマリ → 案件/タスクごと。出力は外部依存ゼロの自己完結 HTML(メール添付でそのまま開ける/印刷で1枚1ページ)。レイアウトはレンダラーが固定し、エージェントは脱専門用語の言い換えと要点抽出に専念する。
 metadata:
   type: skill
   stage: 2
-  pairs_with: friday-record
+  pairs_with: jarvis-record
   data_dir: <repo>/report-deck
 ---
 
 # report-deck — 依頼者向け日次報告スライド (Stage 2)
 
-[friday-record](../friday-record/) が作った案件×日付の作業記録を入力に、**非エンジニアの依頼者向け**の
+[jarvis-record](../jarvis-record/) が作った案件×日付の作業記録を入力に、**非エンジニアの依頼者向け**の
 日次報告スライド(HTML)を1本生成する。フォーマットの一貫性は `bin/render_deck.py`(決定論的レンダラー)が
 保証し、エージェントは**専門用語の言い換え**と**要点の抽出**に専念する。
 
@@ -47,7 +47,7 @@ metadata:
 7. **完了提示**: 生成パス・スライド枚数・案件数を提示。ブラウザで開けば即配布できる旨を伝える。
 
 ```bash
-SKILL=/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/friday-deck
+SKILL=/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/friday-daily-report
 python3 "$SKILL/bin/render_deck.py" --in /path/to/payload.json     # → 出力パスを表示
 # 確認用に書き込まず標準出力へ: --stdout
 ```
