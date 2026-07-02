@@ -119,6 +119,9 @@ bash "$SKILL/bin/archive.sh" 2026-05
 
 ## 注意
 
+- **原料保全**（personas/jarvis.md）: digest はきれいな要約より情報の保全を優先する。
+  つまずき・エラー原文・試行錯誤・不採用案は「些末」として要約で潰さない
+  （Problem / トラブルシュート表 / 検証結果は、下流の jarvis-record・friday 系の品質を決める原料）。
 - マスキングは collect 段階で適用済み（`config/redaction.yaml`）。整理情報の `<REDACTED:種別>` は復元しない。
 - プロジェクトを増やすときは `config/projects.yaml` に、機密語を伏字化するときは `config/redaction.yaml` に追記。
 - Web 版（claude.ai）はローカルにログが無いため収集対象外。

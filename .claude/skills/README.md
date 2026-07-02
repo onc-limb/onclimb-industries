@@ -67,6 +67,9 @@
 
 ## 補足
 
+- **文章表現の共通ルール**: 文書を生成するスキルは、AI 感を減らす共通スタイルガイド
+  [`personas/writing-style.md`](../../personas/writing-style.md) に従う（friday 系は清書パス必須、
+  jarvis 系は一次情報の保全側で対応）。
 - **データ出力ディレクトリ名は改名対象外**。各スキルがリポジトリ直下に生成するデータ置き場
   （例: `worklog-data/`, `knowledge-base/`, `report-record/`, `report-deck/`, `giziroku/`）や、
   スクリプト内部のモジュール名・環境変数（`worklog_lib`, `REPORT_DECK_DIR` 等）は、
