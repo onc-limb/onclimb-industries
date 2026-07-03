@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Monthly household budget aggregator (deterministic; stdlib only).
+"""Monthly personal budget aggregator (deterministic; stdlib only).
 
 Reads, under the data dir (--data-dir > $BUDGET_DATA > ./budget-data):
   - entries/YYYY-MM.json   variable expenses (receipt / gmail / manual entries)
@@ -428,7 +428,7 @@ def to_markdown(r):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Aggregate monthly household budget.")
+    parser = argparse.ArgumentParser(description="Aggregate monthly personal budget.")
     parser.add_argument("--month", required=True, help="target month, YYYY-MM")
     parser.add_argument(
         "--data-dir", help="budget data dir (default: $BUDGET_DATA or ./budget-data)"

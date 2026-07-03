@@ -59,7 +59,8 @@
 | `ultron-timesheet-aggregator` | 事務・金融・資産系 |
 | `ultron-tax-prep-organizer` | 事務・金融・資産系 |
 | `ultron-contract-review-assistant` | 事務・金融・資産系 |
-| `ultron-household-budget-manager` | 事務・金融・資産系 |
+| `ultron-personal-budget-manager` | 事務・金融・資産系 |
+| `ultron-family-budget-manager` | 事務・金融・資産系 |
 | `karen-problem-essence-organizer` | 一時利用・汎用系 |
 | `karen-self-evolving-skill-creator` | 一時利用・汎用系 |
 | `karen-learning-roadmap` | 一時利用・汎用系 |

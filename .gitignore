@@ -26,6 +26,9 @@
 # todo-management: タスク台帳・変更ログ（個人の作業内容・機密を含みうるため追跡しない）
 /todo-data/
 
+# shared-expense-tracker: 共同支出のレシート画像・取引記録（世帯の金銭情報のため追跡しない）
+/shared-expense-data/
+
 # timesheet-aggregator: 稼働エントリ・稼働サマリ（案件情報を含みうるため追跡しない）
 /timesheet-data/
 

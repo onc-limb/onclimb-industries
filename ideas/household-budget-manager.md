@@ -135,7 +135,7 @@ related: [tax-prep-organizer.md, invoice-builder.md]
 
 ## 実装メモ (Implementation Notes)
 
-- ディレクトリ構成: `.claude/skills/ultron-household-budget-manager/`（`SKILL.md` / `scripts/aggregate.py` / `templates/monthly-report.md` / `references/categories.md` / `references/gmail-integration.md`）
+- ディレクトリ構成: `.claude/skills/ultron-personal-budget-manager/`（`SKILL.md` / `scripts/aggregate.py` / `templates/monthly-report.md` / `references/categories.md` / `references/gmail-integration.md`）
 - データ: `budget-data/config/fixed-costs.json`・`income.json`、`entries/YYYY-MM.json`、`inbox/`（+ `processed/`）、`reports/YYYY-MM.md`
 - 既存スキルとの関係: `ultron-tax-prep-organizer` と同じ「分類は Claude・合算はスクリプト」の役割分担を踏襲。
   事業経費として確定申告に回すべき支出を見つけたら tax-prep-organizer 側に案内する（本スキルには混ぜない）
@@ -155,5 +155,7 @@ related: [tax-prep-organizer.md, invoice-builder.md]
 
 ## 実装リンク
 
-- スキルディレクトリ: `../.claude/skills/ultron-household-budget-manager/`
+- スキルディレクトリ: `../.claude/skills/ultron-personal-budget-manager/`
+  （2026-07-03 に `ultron-household-budget-manager` から改名。家族のお金管理
+  `ultron-family-budget-manager` の追加に伴い、個人の資産（現金）管理という立ち位置を名前に反映）
 - 関連 PR / commit: （初版作成時点では未コミット）
