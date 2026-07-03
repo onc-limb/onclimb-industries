@@ -1,0 +1,93 @@
+[
+  {
+    "id": "rm_rf_root",
+    "regex": "rm\\s+-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*\\s+(--no-preserve-root\\s+)?(/|/\\*|~|\\$HOME)(\\s|$)",
+    "label": "ルート/ホーム直下の再帰強制削除",
+    "severity": "critical",
+    "advice": "システム全体を消し得る。絶対に実行しない。対象パスを具体化する"
+  },
+  {
+    "id": "rm_rf_var",
+    "regex": "rm\\s+-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*\\s+\"?\\$[A-Za-z_]",
+    "label": "変数展開先の再帰強制削除",
+    "severity": "high",
+    "advice": "変数が空/想定外だと破滅的。事前に [ -n \"$VAR\" ] 等でガードする"
+  },
+  {
+    "id": "rm_rf_generic",
+    "regex": "rm\\s+-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*\\b",
+    "label": "再帰強制削除 (rm -rf)",
+    "severity": "medium",
+    "advice": "対象を ls で確認してから実行する。-f で確認プロンプトが消える点に注意"
+  },
+  {
+    "id": "dd_to_disk",
+    "regex": "dd\\s+.*of=/dev/(sd|nvme|disk|hd)",
+    "label": "ブロックデバイスへの dd 書き込み",
+    "severity": "critical",
+    "advice": "ディスクを直接上書きしデータを破壊する。of= のデバイス指定を厳重に確認する"
+  },
+  {
+    "id": "mkfs",
+    "regex": "\\bmkfs(\\.[a-z0-9]+)?\\s+/dev/",
+    "label": "デバイスのフォーマット (mkfs)",
+    "severity": "critical",
+    "advice": "対象デバイスを初期化し全データを消す。デバイス指定を確認する"
+  },
+  {
+    "id": "redirect_to_disk",
+    "regex": ">\\s*/dev/(sd|nvme|disk|hd)[a-z0-9]*",
+    "label": "ブロックデバイスへのリダイレクト",
+    "severity": "critical",
+    "advice": "ディスクを直接破壊し得る。リダイレクト先を確認する"
+  },
+  {
+    "id": "curl_pipe_shell",
+    "regex": "(curl|wget)\\s+[^|]*\\|\\s*(sudo\\s+)?(sh|bash|zsh)\\b",
+    "label": "ダウンロードしたスクリプトの直接実行 (curl|sh)",
+    "severity": "high",
+    "advice": "取得したコードを無確認で実行している。一度保存し内容を確認してから実行する"
+  },
+  {
+    "id": "fork_bomb",
+    "regex": ":\\(\\)\\s*\\{\\s*:\\s*\\|\\s*:\\s*&\\s*\\}\\s*;\\s*:",
+    "label": "フォークボム",
+    "severity": "critical",
+    "advice": "システムを枯渇させる古典的攻撃コード。実行しない"
+  },
+  {
+    "id": "chmod_777_recursive",
+    "regex": "chmod\\s+-R\\s+0?777",
+    "label": "再帰的な 777 権限付与",
+    "severity": "high",
+    "advice": "配下すべてを誰でも書込・実行可能にする。必要最小権限に絞る"
+  },
+  {
+    "id": "chown_recursive_system",
+    "regex": "chown\\s+-R\\s+\\S+\\s+(/|/etc|/usr|/var|/bin)(\\s|$)",
+    "label": "システムパスの再帰的所有者変更",
+    "severity": "high",
+    "advice": "OS の権限構造を壊し得る。対象を限定する"
+  },
+  {
+    "id": "git_push_force_main",
+    "regex": "git\\s+push\\s+.*--force(?!-with-lease)\\s+\\S+\\s+(main|master|develop)\\b",
+    "label": "主要ブランチへの強制 push",
+    "severity": "high",
+    "advice": "共有履歴を破壊し得る。--force-with-lease を使い、保護ブランチ運用を確認する"
+  },
+  {
+    "id": "history_wipe",
+    "regex": "(>\\s*~?/?\\.(bash|zsh)_history|history\\s+-c)",
+    "label": "シェル履歴の消去",
+    "severity": "medium",
+    "advice": "監査可能性を損なう。証跡隠しの意図が無いか確認する"
+  },
+  {
+    "id": "no_preserve_root",
+    "regex": "--no-preserve-root",
+    "label": "--no-preserve-root の指定",
+    "severity": "critical",
+    "advice": "ルート保護を明示的に外している。ほぼ常に誤り。使わない"
+  }
+]

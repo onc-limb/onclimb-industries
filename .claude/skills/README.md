@@ -86,6 +86,7 @@
 | `edith-freelance-rate-research` | 調査・データ収集・分析系 |
 | `edith-competitor-market-scan` | 調査・データ収集・分析系 |
 | `edith-product-discovery` | 調査・データ収集・分析系 |
+| `edith-cli-command-quality` | 調査・データ収集・分析系 |
 | `ultron-high-dividend-stock-screener` | 事務・金融・資産系 |
 | `ultron-invoice-builder` | 事務・金融・資産系 |
 | `ultron-timesheet-aggregator` | 事務・金融・資産系 |
