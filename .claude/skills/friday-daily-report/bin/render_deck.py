@@ -18,13 +18,20 @@ payload schema:
   "projects": [                      # 1件以上必須
     {
       "name": "会員向けサービス",
-      "did":    [{"status": "done|wip|todo|pause", "text": "..."}, "テキストだけでも可"],
+      "did":    [{"status": "done|wip|todo|pause", "text": "...",
+                  "importance": "main|sub",        # 任意。main=主成果(強調・上に)、sub=従(圧縮)。省略=通常
+                  "note": "この部分は手作業で対応"},  # 任意。手動実施・ログ欠損等の小さな注記
+                 "テキストだけでも可"],
       "status": ["..."],             # status/next/ask は常に出力(空は「なし」)
       "next":   ["..."],
       "ask":    ["..."]
     }
   ]
 }
+
+did は importance で main → 指定なし → sub の順に安定ソートして描画する。
+ask が 1 件以上ある案件があれば、サマリスライドに「ご相談・ご判断いただきたいこと」を
+案件名付きで自動集約する(判断待ちを読み飛ばされない位置に置く)。
 
 出力先: <REPORT_DECK_DIR or repo>/report-deck/<YYYY-MM>/<date>.html
 """
@@ -70,23 +77,41 @@ def li_plain(items):
     return "\n".join("        <li>{}</li>".format(esc(x)) for x in items)
 
 
+IMPORTANCE_RANK = {"main": 0, None: 1, "sub": 2}
+IMPORTANCE_CLS = {"main": "im-main", "sub": "im-sub"}
+
+
 def li_did(items):
     if not items:
         return "        <li>なし</li>"
+
+    def imp(it):
+        v = it.get("importance") if isinstance(it, dict) else None
+        if v is not None and v not in IMPORTANCE_CLS:
+            print("warning: 未知の importance {!r} を無視しました".format(v), file=sys.stderr)
+            v = None
+        return v
+
+    # 主成果を上に・従を下に(同ランク内は入力順を保つ安定ソート)
+    items = sorted(items, key=lambda it: IMPORTANCE_RANK[imp(it)])
     out = []
     for it in items:
         if isinstance(it, dict):
             text = it.get("text", "")
             st = it.get("status")
+            li_cls = IMPORTANCE_CLS.get(imp(it))
+            li_open = '<li class="{}">'.format(li_cls) if li_cls else "<li>"
+            note = it.get("note")
+            note_html = '<span class="note">※ {}</span>'.format(esc(note)) if note else ""
             if st in STATUS:
                 label, cls = STATUS[st]
-                out.append('        <li><span class="{}">{}</span>{}</li>'.format(
-                    cls, label, esc(text)))
+                out.append('        {}<span class="{}">{}</span>{}{}</li>'.format(
+                    li_open, cls, label, esc(text), note_html))
             else:
                 if st is not None:
                     print("warning: 未知の status {!r} を無視しました (text: {})".format(
                         st, text), file=sys.stderr)
-                out.append("        <li>{}</li>".format(esc(text)))
+                out.append("        {}{}{}</li>".format(li_open, esc(text), note_html))
         else:
             out.append("        <li>{}</li>".format(esc(it)))
     return "\n".join(out)
@@ -145,6 +170,29 @@ def main():
     tpl = re.sub(
         r"(<!-- HL_START.*?-->).*?(<!-- HL_END -->)",
         lambda m: m.group(1) + hl_html + m.group(2),
+        tpl, count=1, flags=re.DOTALL,
+    )
+
+    # 2b) サマリへ「ご相談」を自動集約 (ASK_START ... ASK_END の間)。
+    # 判断待ちは読み飛ばされないよう、案件スライドより前(サマリ)にも案件名付きで出す。
+    # ask が1件も無ければブロックごと消す。旧テンプレート(マーカー無し)では何もしない。
+    asks = []
+    for p in projects:
+        for a in p.get("ask", []):
+            asks.append("{}: {}".format(p.get("name", "(無題)"), a))
+    if asks:
+        ask_items = "\n".join("        <li>{}</li>".format(esc(a)) for a in asks)
+        ask_html = (
+            '\n    <div class="group ask">\n'
+            '      <div class="h">ご相談・ご判断いただきたいこと</div>\n'
+            '      <ul>\n{}\n      </ul>\n'
+            '    </div>\n    '
+        ).format(ask_items)
+    else:
+        ask_html = "\n    "
+    tpl = re.sub(
+        r"(<!-- ASK_START.*?-->).*?(<!-- ASK_END -->)",
+        lambda m: m.group(1) + ask_html + m.group(2),
         tpl, count=1, flags=re.DOTALL,
     )
 

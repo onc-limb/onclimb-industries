@@ -64,6 +64,10 @@ BASE_INSTRUCTION = """\
 1. 残ったノイズ（重複したやり取り、冗長なツール出力、空メッセージ、進捗メッセージ、機械的な反復）は除外する。
 2. **過程を必ず残す**: 何を試し、なぜその判断をし、何が失敗し、何が効いたか。最終結果だけは不可。これがこの整理情報の存在理由。
 3. 元ログに無い内容を捏造しない。推測が必要な箇所や情報が無い項目は「記録なし」と明示する。
+   その際、欠損の型が判別できれば括弧で添える: 「記録なし（セッション中断）」（ログが途中で切れた）/
+   「記録なし（ユーザー手動・ログ外）」（ユーザーが手で実施したと申告・示唆されている）/
+   「記録なし（背景の記載なし）」（依頼理由・背景が会話に出てこない）。判別できなければ「記録なし」のみ。
+   ※この型は下流（jarvis-record）がヒアリングの聞き方を変えるために使う。
 4. 既に <REDACTED:種別> で伏字化された箇所はそのまま伏字のまま扱い、復元を試みない。
 5. 出力は Markdown のみ。前置き・後書き・コードフェンス囲みは不要。指定の見出し構成に厳密に従う。
 6. 各見出しは箇条書きで具体的に。後で報告書を書く人が困らないよう、固有の事実・数値・コマンド・判断を漏れなく拾う。
@@ -89,6 +93,43 @@ SEGMENT_NOTE = """\
    出力は他の時間帯の整理と「## 【時間帯 i/n】」見出しの下に連結されるため、
    H1 見出し（# …）とテンプレ冒頭の TL;DR・成果サマリ（結論層）のセクションは出力せず、
    それ以降の ## 見出しから書き始める。"""
+
+# 時間帯分割ファイルの後処理: band（時間帯セクション）間の重複・矛盾を検知して
+# digest 冒頭に「突き合わせリスト」を出す。並行セッションが別 band に分かれると、
+# 同じ作業が複数 band に別内容で書かれ、下流（jarvis-record）が食い違いに気づけないため。
+# あくまで「ユーザーに確認する候補」であり、どちらが正しいかはここで決めない。
+RECON_INSTRUCTION = """\
+以下は、1 日の作業ログを時間帯で分割して整理した digest です（プロジェクト: {project} / 日付: {date}）。
+時間帯セクション（## 【時間帯 i/n: HH:MM–HH:MM】）の間で、
+(1) 同じ作業・同じ対象が複数の時間帯に重複して書かれている箇所、
+(2) 同じ対象について記述が食い違っている箇所（例: 一方は「未対応」、他方は「完了」）
+を抽出してください。
+
+# 厳守事項
+- digest に書かれていることだけを根拠にする。どちらが正しいかを判定・推測しない。
+- 出力は Markdown の箇条書きのみ。前置き・後書き・見出し・コードフェンスは不要。
+- 各項目は「- **対象**: 時間帯X は「…」/ 時間帯Y は「…」〔重複 or 矛盾〕」の形式で、
+  対象と各時間帯の記述を短く引用する。
+- 該当が無ければ「- なし」とだけ出力する。
+- 別の作業をたまたま似た言葉で書いただけの可能性が残る場合は、項目末尾に（別作業の可能性あり）と添える。
+
+# digest
+{digest}
+"""
+
+
+def reconcile_bands(project, date, band_blocks):
+    """時間帯分割された digest の band 間重複・矛盾リストを claude で生成する。
+    返り値は digest 冒頭に挿すセクション文字列（失敗時はその旨の注記）。"""
+    digest_text = cap_text("\n\n".join(band_blocks))
+    prompt = RECON_INSTRUCTION.format(project=project, date=date, digest=digest_text)
+    ok, result = W.run_claude(prompt, model="sonnet")
+    header = "## 【時間帯間の重複・矛盾（jarvis-record での突き合わせ用）】"
+    if ok:
+        body = result.strip() or "- なし"
+        return "%s\n\n%s" % (header, body)
+    return ("%s\n\n- （自動検知に失敗: %s。jarvis-record 側で時間帯セクションを"
+            "突き合わせること）" % (header, result))
 
 
 def load_template(name):
@@ -281,6 +322,7 @@ def main():
                 units.append((span, prompt))
             jobs.append({
                 "out_path": out_path, "label": "%s/%s_%s" % (fmt, pid, d),
+                "pid": disp_pid, "date": d,
                 "n": n, "units": units,
             })
 
@@ -345,21 +387,27 @@ def main():
             continue
 
         # 分割ファイル: 各セグメントを時間帯見出し付きで 1 ファイルに連結する
-        blocks = ["（ログが長いため時間帯で %d 分割して整理）" % n]
+        head = "（ログが長いため時間帯で %d 分割して整理）" % n
+        band_blocks = []
         n_ok = 0
         for ui, (span, prompt) in enumerate(job["units"]):
             i = ui + 1
             ok, result = resmap.get(ui, (False, "結果なし"))
             header = "---\n## 【時間帯 %d/%d: %s】" % (i, n, span or "")
             if ok:
-                blocks.append("%s\n\n%s" % (header, result))
+                band_blocks.append("%s\n\n%s" % (header, result))
                 n_ok += 1
             else:
                 part_path = "%s.prompt.part%d.txt" % (out_path, i)
                 with open(part_path, "w", encoding="utf-8") as f:
                     f.write(prompt)
-                blocks.append("%s\n\n（この時間帯の生成に失敗: %s。プロンプトを %s に保存）"
-                              % (header, result, part_path))
+                band_blocks.append("%s\n\n（この時間帯の生成に失敗: %s。プロンプトを %s に保存）"
+                                   % (header, result, part_path))
+        # band 間の重複・矛盾リストを冒頭に挿す（2 セグメント以上成功した場合のみ意味がある）
+        blocks = [head]
+        if n_ok >= 2:
+            blocks.append(reconcile_bands(job["pid"], job["date"], band_blocks))
+        blocks.extend(band_blocks)
         with open(out_path, "w", encoding="utf-8") as f:
             f.write("\n\n".join(blocks) + "\n")
         if n_ok == n:

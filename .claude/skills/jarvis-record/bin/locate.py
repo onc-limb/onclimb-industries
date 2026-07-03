@@ -4,7 +4,8 @@
 指定日(+任意で案件)について、報告記録の生成に必要な入力を集めて JSON で出力する。
 - worklog の project digest (主入力)
 - 同案件の前日までの記録 (継続性のため)
-- 記録の出力先パス
+- 記録の出力先パス / 草案(DRAFT)の有無 (無応答時は DRAFT 止まりにする運用のため)
+- 手動メモ (worklog-data/manual/<date>.md。ログに写らない手動操作の申告)
 - _unclassified フラグ (報告に含めるかは都度ユーザー確認するため明示する)
 
 使い方:
@@ -62,6 +63,7 @@ def main():
             if DATE_RE.match(d) and d < date:
                 prev = r  # sorted 昇順なので最後に残るのが最新
         record_out = os.path.join(record_dir, name, "{}.md".format(date))
+        draft_out = os.path.join(record_dir, name, "{}.DRAFT.md".format(date))
         projects.append({
             "project": name,
             "is_unclassified": name.startswith("_unclassified"),
@@ -69,13 +71,19 @@ def main():
             "prev_record": prev,
             "record_out": record_out,
             "record_exists": os.path.exists(record_out),
+            "draft_out": draft_out,
+            "draft_exists": os.path.exists(draft_out),
         })
+
+    # ログに写らない手動操作の申告メモ(あれば)。jarvis-record が記録の入力に混ぜる。
+    manual_notes = os.path.join(worklog_data, "manual", "{}.md".format(date))
 
     print(json.dumps({
         "date": date,
         "repo": repo,
         "worklog_data": worklog_data,
         "record_dir": record_dir,
+        "manual_notes": manual_notes if os.path.exists(manual_notes) else None,
         "found": len(projects),
         "projects": projects,
     }, ensure_ascii=False, indent=2))

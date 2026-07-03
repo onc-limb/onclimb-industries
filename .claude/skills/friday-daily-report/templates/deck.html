@@ -107,6 +107,13 @@
   }
   .status.done{background:var(--accent);}
 
+  /* 重要度の濃淡: 主成果(im-main)は強調、従(im-sub)は圧縮して平坦さを避ける */
+  li.im-main{font-weight:700;font-size:1.04em;}
+  li.im-sub{font-size:.88em;color:var(--sub);}
+  li.im-sub::before{color:var(--panel-line);}
+  /* 手動実施・ログに無い等の小さな注記 */
+  li .note{display:block;font-size:.78em;font-weight:400;color:var(--sub);margin-top:.1em;}
+
   /* フッタ（ページ送り表示） */
   .nav{
     position:fixed;right:2.2vw;bottom:2.2vh;
@@ -148,6 +155,14 @@
       </ul>
       <!-- HL_END -->
     </div>
+    <!-- ASK_START : ご相談がある日のみ render_deck.py が案件名付きで自動集約(無ければ空になる) -->
+    <div class="group ask">
+      <div class="h">ご相談・ご判断いただきたいこと</div>
+      <ul>
+        <li>もう一方のサービス: 修正にあたり、対応の優先順位をご相談させてください。</li>
+      </ul>
+    </div>
+    <!-- ASK_END -->
   </section>
 
   <!-- PROJECT_SLIDES ここから（案件ごとに section を複製） -->
