@@ -1,6 +1,7 @@
 ---
 name: ultron-invoice-builder
 description: フリーランスエンジニア(SES 参画中)の月次請求書を作成するスキル。稼働時間・単価・精算条件(取引先設定は invoice-data/config/billing.json)を入力に、明細 JSON を Claude が整理し、金額計算(小計・消費税 10%・源泉徴収 10.21%/100万円超部分 20.42%・差引請求額)は決定論的な python スクリプト bin/calc_invoice.py が計算・検算する。出力は適格請求書(インボイス)の記載要件を満たす Markdown の請求書＋内訳表で、invoice-data/invoices/ に保存する。「今月の請求書を作って」「6月分の稼働 160.5 時間で請求書にして」「この請求書の金額が合ってるか検算して」「稼働ログから請求書と内訳を作って」「単価5,000円で162時間分の請求額を計算して」等で、ユーザーが明示的に依頼したときだけ起動する(自動起動しない)。税務助言ではなく事務作業の支援。金額は Claude が暗算せず必ずスクリプトの出力を転記する。
+model: sonnet
 metadata:
   type: skill
   data_dir: <repo>/invoice-data

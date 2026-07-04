@@ -5,6 +5,8 @@
 
 - ここは軽量なバックログ。正式に検討を始めるものは [`TEMPLATE.md`](TEMPLATE.md) を複製して
   「1 アイデア = 1 ファイル」で書き起こす（[運用ルール](README.md)参照）。
+- エンジニアリング作業（開発・運用・インフラ）に特化した候補は
+  [`engineer-skill-candidates.md`](engineer-skill-candidates.md) に分冊している。
 - 分類プレフィックスは [`../personas/`](../personas/) / [`../.claude/skills/README.md`](../.claude/skills/README.md) に準拠。
 
 | 候補名（仮） | 分類 | 解決したい場面・課題 | 想定 入力 → 出力（概要） | メモ |

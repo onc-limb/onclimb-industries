@@ -1,6 +1,7 @@
 ---
 name: ultron-family-budget-manager
 description: 家族のお金を管理するスキル(ultron 系)。夫婦の共同支出（食費中心）のレシートを記録し、割り勘精算の元データとなる月次集計を作る。個人の資産（現金）管理は ultron-personal-budget-manager の領分。budget-bot リポジトリの process-receipts を移植したもの。shared-expense-data/inbox/ に置かれたレシート画像を Read (Vision) で読み取り、日付・店舗・税込合計・カテゴリを抽出して購入月の shared-expense-data/archive/YYYY-MM/ へリネーム移動し、transactions.jsonl (正本) に追記、summary.md (派生ビュー) を scripts/regen_summary.py で再生成する。読み取りに失敗したファイルは推測で埋めず inbox に残して報告する。「レシート集計して」「inbox 整理して」「領収書まとめて」「今月の食費まとめて」「割り勘用の集計出して」「process-inbox 実行」等で起動する。個人の家計全体(収入・固定費・収支)を扱う ultron-personal-budget-manager とは別系統で、本スキルは世帯の共同支出のみを扱う。出力は支出の機械的な記録・集計であって家計指導ではない。
+model: sonnet
 metadata:
   type: skill
   data_dir: <repo>/shared-expense-data
@@ -22,9 +23,14 @@ metadata:
 
 ## 場所（コードとデータは分離されている）
 
-- ツール本体: このスキルディレクトリ `.claude/skills/ultron-family-budget-manager/`（`scripts/`）
+- ツール本体: このスキルディレクトリ `.claude/skills/ultron-family-budget-manager/`（`scripts/` `references/`）
 - **データ**: リポジトリ直下の `shared-expense-data/`（**git 管理外**。`.gitignore` 済み）。
   環境変数 `SHARED_EXPENSE_DATA` で場所を上書き可。
+- **Google Drive 連携（任意）**: `inbox/` と `archive/` を Drive 上の実体へのシンボリックリンクにし、
+  複数マシン・スマホと同期できる。セットアップと運用ルールは
+  [`references/google-drive-sync-setup.md`](references/google-drive-sync-setup.md)。
+  連携時は**書き込み処理（本スキルの実行）は 1 台（Mac Mini）だけ**という単一ライター原則を守る。
+  他端末は inbox への投入と閲覧のみ。
 
 ```
 shared-expense-data/

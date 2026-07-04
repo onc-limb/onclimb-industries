@@ -1,6 +1,7 @@
 ---
 name: ultron-timesheet-aggregator
 description: 散在する稼働の手がかり（jarvis-worklog の分類済みログ worklog-data/ や Google カレンダー(MCP)）から、案件別・日別の稼働時間サマリを作る集計スキル。Claude はソースの読み取りとエントリの案件分類（確証がなければ「未分類」に倒す）だけを担い、時間の合算・案件別/日別内訳・重複警告は決定論的スクリプト(scripts/aggregate.py)が計算する（LLM は合計値を暗算しない）。出力は timesheet-data/ 配下の月次エントリ JSON と稼働サマリ Markdown（案件別・日別の稼働表、未分類とソース内訳の明示、警告付き）で、請求書作成スキル（ultron-invoice-builder）の入力になり得る。「今月の稼働時間を集計して」「6月の案件別稼働サマリを出して」「worklogとカレンダーから稼働表を作って」「請求書用に今月の稼働内訳をまとめて」「先月、○○案件に何時間使ったか出して」等で、ユーザーが明示的に依頼したときだけ起動する（自動起動しない）。出力は稼働の情報整理であって、勤怠の公式記録や請求書そのものではない。worklog（ログ整理）・record（作業記録）とは別系統。
+model: sonnet
 metadata:
   type: skill
   data_dir: <repo>/timesheet-data

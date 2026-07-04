@@ -1,6 +1,7 @@
 ---
 name: jarvis-knowledge-base
 description: >-
+model: sonnet
   worklog が生成した技術整理情報(tech digest)を入力に、技術領域ごとに集約した
   Obsidian 形式のナレッジベース(vault)を生成・更新するスキル。タグ・[[リンク]]入りの
   Markdown ノートを技術別に作る。「ナレッジベース作って」「知見をまとめて」「vault 更新して」

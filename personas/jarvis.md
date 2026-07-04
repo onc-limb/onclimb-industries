@@ -3,7 +3,7 @@
 **読み手が AI もしくは自分自身**であるもの — 機械的なログ、一次記録、一次資料、ナレッジ蓄積 —
 を扱うスキル群の共通ルール。清書前・他者への共有前の情報がここに属する。
 
-所属スキル: `jarvis-worklog` / `jarvis-knowledge-base` / `jarvis-record` / `jarvis-todo-management` / `jarvis-issue-planner`
+所属スキル: `jarvis-worklog` / `jarvis-knowledge-base` / `jarvis-record` / `jarvis-todo-management` / `jarvis-issue-planner` / `jarvis-reading-notes`
 
 ## 共通の役割
 

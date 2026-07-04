@@ -1,6 +1,7 @@
 ---
 name: ultron-personal-budget-manager
 description: フリーランスエンジニア個人の資産（現金）を管理するスキル。対象は個人の家計（私的支出・生活収支）で、家族のお金（夫婦の共同支出・割り勘）は ultron-family-budget-manager の領分。レシート・領収書の画像/PDF（budget-data/inbox/ に配置）を Read ツールで読み取り、Claude が {date, store, amount, category, payment_method} の明細 JSON に起こしてユーザー確認のうえ月次エントリ(budget-data/entries/YYYY-MM.json)へ追記する。固定費(家賃・光熱費・通信費・サブスク等)と収入は budget-data/config/ の JSON で管理し、月ごとの収支(収入 − 固定費 − 変動費)・カテゴリ別内訳・前月比・重複疑い警告は決定論的スクリプト(scripts/aggregate.py)が計算する(Claude は合計を暗算しない)。Gmail 連携(MCP 接続時のみ)は領収書系メールを検索し、本文に金額があるものは get_thread で本文から明細を抽出して取り込み、PDF 添付のものは「家計/DL待ち」ラベルを付けて手動ダウンロードを依頼し、外部サイトへ誘導するものは「家計/要確認」ラベルを付けて一覧報告する(Gmail MCP に添付ダウンロード機能は無いため添付の直接取り込みはしない)。MCP 未接続ならGmail 連携をスキップしローカル処理のみで動く。「今月の家計をまとめて」「このレシート読み込んで」「Gmail から領収書メールを拾って」「今月の収支どうなってる？」「固定費を更新して」「先月と比べて食費どうなってる？」等で、ユーザーが明示的に依頼したときだけ起動する(自動起動しない)。出力は家計情報の機械的な整理であって金融助言・投資助言・節約指導ではない。事業経費の確定申告整理は ultron-tax-prep-organizer の領分で、本スキルは個人の家計のみを扱う(事業経費らしき支出を見つけたら tax-prep-organizer への振り分けを案内するだけで、本スキルの数字には混ぜない)。
+model: sonnet
 metadata:
   type: skill
   data_dir: <repo>/budget-data

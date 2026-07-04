@@ -23,8 +23,10 @@ projects:
       - worklog
       - 作業記録
 
+  # 旧パス（Documents/climbing-apps など）は記録済み cwd 文字列で過去ログを振り分けるため残す
   - id: noboru-note
     path_globs:
+      - /Users/satoshi-onga/Documents/onclimb-industries/projects/noboru-note
       - /Users/satoshi-onga/Documents/climbing-apps/noboru-note
     repos:
       - noboru-note
@@ -33,6 +35,7 @@ projects:
 
   - id: climbinsight
     path_globs:
+      - /Users/satoshi-onga/Documents/onclimb-industries/projects/climbinsight
       - /Users/satoshi-onga/Documents/climbing-apps/climbinsight
     repos:
       - climbinsight
@@ -40,6 +43,7 @@ projects:
 
   - id: personal-dashboard
     path_globs:
+      - /Users/satoshi-onga/Documents/onclimb-industries/projects/personal-dashboard
       - /Users/satoshi-onga/Documents/personal-dashboard
     repos:
       - personal-dashboard
@@ -62,6 +66,7 @@ projects:
   # ariadne / marginalia は my-own-apps リポジトリ内のサブアプリ。一括で my-own-apps に分類する
   - id: my-own-apps
     path_globs:
+      - /Users/satoshi-onga/Documents/onclimb-industries/projects/my-own-apps
       - /Users/satoshi-onga/Documents/portfolio/my-own-apps
     repos:
       - my-own-apps

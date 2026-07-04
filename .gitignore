@@ -50,6 +50,12 @@
 # learning-roadmap: 学習ロードマップ（個人の学習記録のため追跡しない）
 /learning-roadmaps/
 
+# people-memory: 人物ごとの会話記録・好みメモ（人間関係・家族の機密のため追跡しない）
+/people-memory/
+
+# reading-notes: 読書メモ台帳（個人の学習・思考の記録のため追跡しない）
+/reading-notes/
+
 # Python: バイトコードキャッシュ・仮想環境（スクリプト実行時の副産物のため追跡しない）
 __pycache__/
 *.pyc

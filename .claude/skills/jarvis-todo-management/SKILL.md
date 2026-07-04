@@ -1,6 +1,7 @@
 ---
 name: jarvis-todo-management
 description: プロジェクト別タスク台帳（todo-data/todos.json）を単一の真実として運用するイベント駆動の ToDo 管理スキル(jarvis 系)。時間駆動のチェックインは行わず、(1)登録と 30〜60 分単位への分割、(2)作業の区切りでの台帳突き合わせ（該当 ToDo が無ければ source 付きで自動記載 + 一言通知）、(3)worklog digest・giziroku 議事録・調査/壁打ちからの ToDo 収穫（inbox 行き）、(4)オンデマンド棚卸し（inbox 消化・stale 検知・分割提案・着手順提案）、(5)Google Tasks への push 同期（プロジェクト = 1 リスト、自作 MCP サーバー経由）を担う。「ToDo 追加」「タスク登録して」「このタスク分割して」「ToDo 整理して」「棚卸しして」「これどの ToDo の作業だっけ」「議事録から ToDo 拾って」「Google Tasks に同期して」等で起動。事実の記録（完了・作業実績の追記)は自動 + 毎回一言通知、意図の決定（廃棄・優先度・分割確定・inbox 昇格）は提案してユーザーが確定する。自己進化パイプラインを備え、分割粒度・突き合わせマッチング・収穫の抽出ルールが使用ログから磨かれる。読み手は自分自身の一次記録であり、他者向け報告の清書は friday 系の責務。
+model: sonnet
 metadata:
   type: skill
   data_dir: <repo>/todo-data
