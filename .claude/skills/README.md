@@ -20,6 +20,7 @@
 | `arc-reactor` | コーディング・レビュー系 | 実装・リファクタリング・コードレビュー |
 | `ultron` | 事務・金融・資産系 | 事務作業・金融・資産運用 |
 | `edith` | 調査・データ収集・分析系 | リサーチ・データ収集・分析 |
+| `griot` | 練習・コーチング系 | 報告説明・プレゼン・英会話など、自分が話して伝える力を鍛える個人練習・コーチング。聞き手は自分自身 |
 | `karen` | 一時利用・汎用系 | 用途が固定されない汎用・一時利用 |
 | `vision` | プライベート・人間関係系 | 仕事の成果物ではない私生活領域（人間関係の記録・家族・個人の暮らし）。読み手は自分だけ |
 
@@ -41,7 +42,7 @@
   型（説明/説得/報告）と読まれ方（辞書的/読み物的）を導出、テーマの設定・分解と情報源の確定まで
   行って、ドキュメント企画書（doc brief）を `doc-briefs/` に作る。
 - **Stage 1: 種類別の生成スキル**（`friday-design-doc-generator` / `friday-proposal-generator` /
-  `friday-tech-article-drafter`）— brief を入力に、骨組み（見出し構成）と本文を生成する。
+  `friday-tech-article-drafter` / `friday-procedure-doc-generator`）— brief を入力に、骨組み（見出し構成）と本文を生成する。
   重複ヒアリングは省略。brief 無しの単体起動も従来どおり可。
 
 入力・テンプレートが固定のパイプライン型（`friday-giziroku` / `friday-daily-report`）は
@@ -64,6 +65,7 @@
 | `friday-proposal-generator` | 共有ドキュメント系 |
 | `friday-tech-article-drafter` | 共有ドキュメント系 |
 | `friday-design-doc-generator` | 共有ドキュメント系 |
+| `friday-procedure-doc-generator` | 共有ドキュメント系 |
 | `arc-reactor-code-review` | コーディング・レビュー系 |
 | `arc-reactor-test-scaffolder` | コーディング・レビュー系 |
 | `arc-reactor-codebase-onboarding` | コーディング・レビュー系 |
@@ -90,6 +92,9 @@
 | `ultron-personal-budget-manager` | 事務・金融・資産系 |
 | `ultron-family-budget-manager` | 事務・金融・資産系 |
 | `ultron-dividend-recorder` | 事務・金融・資産系 |
+| `griot-explain-prep` | 練習・コーチング系 |
+| `griot-explain-coach` | 練習・コーチング系 |
+| `griot-explain-english` | 練習・コーチング系 |
 | `vision-people-memory` | プライベート・人間関係系 |
 | `karen-problem-essence-organizer` | 一時利用・汎用系 |
 | `karen-self-evolving-skill-creator` | 一時利用・汎用系 |

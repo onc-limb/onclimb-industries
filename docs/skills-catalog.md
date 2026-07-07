@@ -24,12 +24,13 @@
 
 読み手が他者（上司・クライアント・チーム）。共有・発表前提に整えたドキュメント。
 
-自由形式ドキュメント（設計書・提案書・技術記事）は `friday-doc-planner`（Stage 0）→ 生成スキル（Stage 1）の 2 段構成。固定パイプライン型（`friday-giziroku` / `friday-daily-report`）は単体起動。
+自由形式ドキュメント（設計書・提案書・技術記事・手順書）は `friday-doc-planner`（Stage 0）→ 生成スキル（Stage 1）の 2 段構成。固定パイプライン型（`friday-giziroku` / `friday-daily-report`）は単体起動。
 
 | スキル | 何をするか | 指示の例 | 成果物（出力先） |
 |--------|-----------|----------|------------------|
 | `friday-doc-planner` | ドキュメント作成の事前準備（Stage 0）。目的×読者を対話で確定し、型・構成・情報源まで固めた企画書を作る | 「どんなドキュメントにするか壁打ちして」 | `doc-briefs/<日付>-<slug>.md`（doc brief） |
 | `friday-design-doc-generator` | コードベースを調査し、出典パス付きの事実だけで設計書 / README / ADR の草案を生成。不明点は TBD 明示 | 「このプロジェクトの README 作って」「この技術選定を ADR にして」 | 対象プロジェクト配下の Markdown |
+| `friday-procedure-doc-generator` | CI/CD 設定・スクリプト等から採取した実在コマンドだけで、運用手順書（deploy / rollback 等）と開発環境構築ガイドを生成。各ステップは「操作→期待結果」ペア、ロールバック手順の有無を必ず検査 | 「デプロイ手順書を作って」「開発環境構築の README を書いて」 | 対象プロジェクト配下の `docs/runbooks/<作業名>.md` / `docs/setup.md` |
 | `friday-proposal-generator` | 要件からタスク分解×工数×単価の内訳表付き提案書・見積ドラフトを生成。金額はユーザー承認必須 | 「この要件で提案書を作って」「見積もり出したいからドラフト作って」 | 提案書ドラフト Markdown（固定構成） |
 | `friday-tech-article-drafter` | tech digest / vault をネタに、機密マスキング・清書パス・公開前チェック付きの技術記事ドラフトを生成 | 「ブログ記事のドラフト書いて」「Terraform のノートを Zenn 記事にして」 | `articles/` の記事ドラフト Markdown |
 | `friday-giziroku` | 音声文字起こし（Plaud / Teams 等）から、決定事項・保留・TODO を抽出した共有用議事録を生成 | 「この transcript を議事録化して」 | `giziroku/` の議事録 Markdown |
@@ -82,6 +83,18 @@ Web 探索を伴うリサーチ。すべての事実主張に出典 URL・取得
 | `ultron-dividend-recorder` | 配当金計算書の画像から配当実績を抽出し、台帳へ記録・集計（personal-dashboard が参照） | 「この配当金計算書を記録して」「今年の配当いくら？」 | `dividend-data/records.json` の配当台帳 |
 | `ultron-high-dividend-stock-screener` | 日本の高配当株（利回り 4% 以上 + 健全性フィルタ）をスクリーニングし候補リスト化。続きから再開可 | 「高配当株のおすすめをリストにして」 | 候補リスト + 調査台帳（免責・レビュー付き） |
 
+## griot — 練習・コーチング系
+
+自分が話して伝える力を鍛える個人練習・コーチング。聞き手は自分自身。
+説明練習は prep（Step 1: 準備）→ 自分で口頭説明・録音（Step 2）→ coach（Step 3: 添削）→
+english（Step 4: 英語化）のパイプラインで回す。データはすべて `explain-practice-data/`（git 管理外）。
+
+| スキル | 何をするか | 指示の例 | 成果物（出力先） |
+|--------|-----------|----------|------------------|
+| `griot-explain-prep` | その日学んだことを壁打ちで言語化（Claude は代筆せず不足・曖昧を指摘）し、固定テンプレのノートと「見ながら話す」1 枚 HTML 資料を生成 | 「今日の説明練習の準備」「学んだことを言語化したい」 | `explain-practice-data/sessions/<日付>-<slug>/` の note.md + deck.html |
+| `griot-explain-coach` | 口頭説明の文字起こしを、毎回インプットする想定聞き手（ペルソナ）に伝わるかの観点で添削。指摘は固定カテゴリで台帳に蓄積し、定期的に苦手傾向を分析 | 「この説明を添削して」「苦手分析して」 | review.md + `review-log.jsonl`（指摘台帳）+ 月次分析レポート |
+| `griot-explain-english` | 練習した説明の英語版資料と音読用の口語スクリプト（対訳・キーフレーズ・発音注意付き）を生成。英語学習を兼ねる | 「これを英語でも練習したい」 | 同セッション `en/` の deck-en.html + script-en.md |
+
 ## karen — 一時利用・汎用系
 
 | スキル | 何をするか | 指示の例 | 成果物（出力先） |
@@ -103,7 +116,8 @@ Web 探索を伴うリサーチ。すべての事実主張に出典 URL・取得
 
 - **日次報告**: `jarvis-worklog`（ログ整理）→ `jarvis-record`（一次記録）→ `friday-daily-report`（報告スライド）
 - **ナレッジ・記事化**: `jarvis-worklog`（tech digest）→ `jarvis-knowledge-base`（vault）→ `friday-tech-article-drafter`（公開記事）
-- **自由形式ドキュメント**: `friday-doc-planner`（企画）→ `friday-design-doc-generator` / `friday-proposal-generator` / `friday-tech-article-drafter`（生成）
+- **自由形式ドキュメント**: `friday-doc-planner`（企画）→ `friday-design-doc-generator` / `friday-proposal-generator` / `friday-tech-article-drafter` / `friday-procedure-doc-generator`（生成）
 - **請求**: `ultron-timesheet-aggregator`（稼働集計）→ `ultron-invoice-builder`（請求書）
 - **開発ループ**: `edith-product-discovery`（アイデア出し）→ `jarvis-issue-planner`（Issue 化）
 - **ToDo**: 各スキル・議事録・調査から `jarvis-todo-management` が収穫 → `jarvis-todo-prioritizer` が優先度付け
+- **説明練習**: `griot-explain-prep`（言語化 + 資料）→ 口頭説明・録音（自分）→ `griot-explain-coach`（添削・苦手分析）→ `griot-explain-english`（英語化）

@@ -62,6 +62,9 @@
 # doc-planner: ドキュメント企画書 doc brief（クライアント名・案件情報を含みうるため追跡しない）
 /doc-briefs/
 
+# explain-practice: 説明練習のノート・資料・文字起こし・添削記録（業務情報を含みうるため追跡しない）
+/explain-practice-data/
+
 # Python: バイトコードキャッシュ・仮想環境（スクリプト実行時の副産物のため追跡しない）
 __pycache__/
 *.pyc

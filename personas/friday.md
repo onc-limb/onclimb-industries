@@ -3,7 +3,7 @@
 **上司・クライアント・チームメンバーに共有する**発表資料やプロジェクトドキュメントの作成に
 特化したスキル群の共通ルール。読み手は自分ではなく他者。
 
-所属スキル: `friday-doc-planner` / `friday-daily-report` / `friday-giziroku` / `friday-proposal-generator` / `friday-tech-article-drafter` / `friday-design-doc-generator`
+所属スキル: `friday-doc-planner` / `friday-daily-report` / `friday-giziroku` / `friday-proposal-generator` / `friday-tech-article-drafter` / `friday-design-doc-generator` / `friday-procedure-doc-generator`
 
 自由形式ドキュメント（設計書・提案書・技術記事など）は、事前準備の `friday-doc-planner`（Stage 0:
 目的を読者の行動レベルまで深掘りし、型・読まれ方を導出、テーマ分解と情報源まで対話で確定して

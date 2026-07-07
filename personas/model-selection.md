@@ -57,6 +57,7 @@
 | friday-proposal-generator | 継承（opus 以上推奨） | 見積・タスク分解の判断とクライアント向け品質 |
 | friday-tech-article-drafter | 継承（opus / fable 推奨） | 公開文章の品質が本体 |
 | friday-design-doc-generator | 継承 | コード調査は codebase-reader（sonnet）へ委任、本文はセッションモデル |
+| friday-procedure-doc-generator | 継承 | 手順・コマンドの正確性が本体（誤ったコマンドの実害が大きい）。操作の採取は codebase-reader（sonnet）へ委任可 |
 
 ### arc-reactor（コーディング・レビュー系）— 全スキル継承（ピンしない）
 
@@ -93,6 +94,14 @@
 | edith-tech-selection-research | 継承（opus 以上推奨） | 7 軸評価と推奨判断が本体。候補ごとの情報収集は sonnet 委任 |
 | edith-competitor-market-scan | 継承 | 個別競合の調査は sonnet 委任、横断統合はセッションモデル |
 | edith-product-discovery | 継承（opus / fable 推奨） | 発想と壁打ちの質が本体。コード調査は codebase-reader（sonnet） |
+
+### griot（練習・コーチング系）
+
+| スキル | 指定 | 理由・委任 |
+|---|---|---|
+| griot-explain-prep | 継承（opus 以上推奨） | 曖昧さ・不足の指摘と壁打ちの質が本体。資料はテンプレ固定の流し込み |
+| griot-explain-coach | 継承（opus 以上推奨） | ペルソナ視点の添削品質が本体（パイプラインの核）。指摘の集計・台帳操作はスクリプト |
+| griot-explain-english | ピン sonnet | ノート→英語資料・口語スクリプトの定型変換。不自然な英語を観測したらピンを外す |
 
 ### karen（一時利用・汎用系）/ vision（プライベート・人間関係系）
 

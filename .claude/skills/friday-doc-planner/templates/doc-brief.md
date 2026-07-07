@@ -1,7 +1,7 @@
 ---
 type: <説明 | 説得 | 報告>
 reading-mode: <辞書的 | 読み物的 | 混在>
-target-skill: <friday-design-doc-generator | friday-proposal-generator | friday-tech-article-drafter | none>
+target-skill: <friday-design-doc-generator | friday-proposal-generator | friday-tech-article-drafter | friday-procedure-doc-generator | none>
 status: draft
 project: <案件・プロジェクト名（任意。無ければ削除）>
 created: <YYYY-MM-DD>

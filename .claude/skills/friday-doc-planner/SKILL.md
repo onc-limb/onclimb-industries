@@ -6,7 +6,8 @@ description: >-
   読まれ方(辞書的/読み物的)を導出して、テーマの設定・分解(主張 / 必要な情報 / 流れ を
   「なぜ・何を・どうやって」の 3 観点で検査)、テーマごとの情報源の確定までを行い、
   ドキュメント企画書(doc brief)を doc-briefs/ に 1 ファイル生成して、種類に応じた後段の生成スキル
-  (friday-design-doc-generator / friday-proposal-generator / friday-tech-article-drafter 等)へ引き渡す。
+  (friday-design-doc-generator / friday-proposal-generator / friday-tech-article-drafter /
+  friday-procedure-doc-generator 等)へ引き渡す。
   骨組み(見出し構成)と本文は書かない(Stage 1 の領分)。
   「ドキュメントを作りたいので整理から手伝って」「どんなドキュメントにするか壁打ちして」
   「ドキュメントの企画・構成を先に決めたい」「何をどこに書くか整理してから書き始めたい」等で、
@@ -16,7 +17,7 @@ description: >-
 metadata:
   type: skill
   stage: 0
-  pairs_with: friday-design-doc-generator, friday-proposal-generator, friday-tech-article-drafter
+  pairs_with: friday-design-doc-generator, friday-proposal-generator, friday-tech-article-drafter, friday-procedure-doc-generator
   data_dir: <repo>/doc-briefs
 ---
 
@@ -40,6 +41,7 @@ Stage 1: 種類に応じた生成スキル ←── brief を入力に、骨組
          - friday-design-doc-generator（設計書 / README / ADR）
          - friday-proposal-generator（提案書・見積）
          - friday-tech-article-drafter（技術記事・登壇）
+         - friday-procedure-doc-generator（運用手順書 / 開発環境構築ガイド）
          - （該当スキルが無い種類は「Stage 1 スキルが無い種類の扱い」参照）
 ```
 
@@ -182,8 +184,9 @@ Stage 1: 種類に応じた生成スキル ←── brief を入力に、骨組
 
 ## Stage 1 スキルが無い種類の扱い
 
-- 手順書・仕様書・FAQ など対応スキルが無い種類も、brief の確定までは本スキルが行う
-  （`target-skill: none`）。
+- 仕様書・FAQ など対応スキルが無い種類も、brief の確定までは本スキルが行う
+  （`target-skill: none`）。手順書（運用手順書・環境構築ガイド）は
+  `friday-procedure-doc-generator` が Stage 1 を担うため、この扱いの対象外。
 - 本文は同セッションの通常作業として書いてよい。その場合も friday 共通ルール
   （[`personas/friday.md`](../../../personas/friday.md)・[`personas/writing-style.md`](../../../personas/writing-style.md) の清書パス）を適用する。
 - **同じ種類が繰り返し出たら、Stage 1 スキル化を提案**する（ideas/skill-feedback.md の運用に乗せる）。

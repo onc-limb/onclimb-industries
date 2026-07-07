@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<!--
+  griot-explain-prep 説明資料テンプレート
+  - 配置: explain-practice-data/sessions/<YYYY-MM-DD>-<slug>/deck.html
+  - 1 枚もの(スライド送りなし)。「見ながら話す」ための手がかりであって読み上げ原稿ではない。
+    箇条書きはキーワードのみ(1 項目 20 字以内目安)。全文を載せない。
+  - 単一の自己完結 HTML。外部 CDN / フレームワーク / Web フォント依存なし。
+  - 差し込み規約(エージェントが直接置換する):
+      ・二重波括弧 theme / date / audience / conclusion ... ヘッダと結論
+      ・WHY / WHAT / HOW の各カード ... note.md の「なぜ・何を・どうやって」の要点
+      ・EXAMPLE_BLOCK ... 具体例(コード断片・数字は載せてよい。説明文は載せない)
+      ・FLOW_START 〜 FLOW_END ... 話す順番(li を note.md の「説明の流れ」から)
+  - デザインは寒色系ミニマルで固定。崩さない。
+  - 注意: このコメント内に「半角の閉じ角括弧つきコメント終端」を書かないこと。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{theme}}</title>
+<style>
+  :root{
+    --ink:#1b2a38;        /* 本文（濃い寒色グレー） */
+    --sub:#5b6b78;        /* 補足 */
+    --accent:#1f3a5f;     /* 濃紺・主アクセント */
+    --accent2:#2c6e8f;    /* ティールブルー・副アクセント */
+    --panel:#ffffff;      /* カード地色 */
+    --panel-line:#cfdbe6; /* カード罫線 */
+    --page1:#eef3f8;      /* 背景グラデ上 */
+    --page2:#dde7f0;      /* 背景グラデ下 */
+    --code-bg:#f3f7fb;    /* 具体例ボックス地 */
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:linear-gradient(160deg,var(--page1),var(--page2));
+    background-attachment:fixed;
+    color:var(--ink);
+    font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+    font-size:16px;line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+    padding:4vh 6vw;
+  }
+  .page{max-width:900px;margin:0 auto;}
+
+  /* ヘッダ */
+  header .bar{width:56px;height:5px;background:var(--accent2);margin-bottom:1rem;border-radius:3px;}
+  header h1{font-size:1.9rem;font-weight:700;color:var(--accent);letter-spacing:.02em;}
+  header .meta{margin-top:.5rem;color:var(--sub);font-size:.9rem;}
+  header .meta .chip{
+    display:inline-block;background:var(--accent2);color:#fff;
+    font-size:.78rem;font-weight:600;padding:.1em .7em;border-radius:3px;margin-right:.6em;
+  }
+
+  /* 結論 */
+  .conclusion{
+    background:var(--panel);border:1px solid var(--panel-line);
+    border-left:6px solid var(--accent);border-radius:6px;
+    padding:1rem 1.3rem;margin:1.4rem 0;
+  }
+  .conclusion .h{font-size:.78rem;font-weight:600;letter-spacing:.1em;color:var(--accent2);margin-bottom:.3rem;}
+  .conclusion p{font-size:1.15rem;font-weight:700;color:var(--accent);}
+
+  /* なぜ・何を・どうやって の 3 カード */
+  .triad{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.9rem;margin:1rem 0;}
+  .card{
+    background:var(--panel);border:1px solid var(--panel-line);
+    border-top:4px solid var(--accent2);border-radius:6px;padding:.9rem 1.1rem;
+  }
+  .card .h{font-weight:700;color:var(--accent);font-size:.95rem;margin-bottom:.4rem;}
+  ul{list-style:none;}
+  ul li{position:relative;padding-left:1.2em;margin:.35rem 0;}
+  ul li::before{content:"—";position:absolute;left:0;color:var(--accent2);}
+
+  /* 具体例 */
+  .example{
+    background:var(--code-bg);border:1px solid var(--panel-line);
+    border-left:4px solid var(--accent2);border-radius:6px;
+    padding:.9rem 1.1rem;margin:1rem 0;
+  }
+  .example .h{font-weight:700;color:var(--accent);font-size:.95rem;margin-bottom:.4rem;}
+  pre{
+    background:#e7eef5;border-radius:4px;padding:.7rem .9rem;
+    overflow-x:auto;font-size:.85rem;line-height:1.5;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+  }
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;}
+
+  /* 話す順番（フッター帯） */
+  .flow{
+    background:var(--panel);border:1px solid var(--panel-line);border-radius:6px;
+    padding:.8rem 1.1rem;margin:1.4rem 0 0;
+  }
+  .flow .h{font-size:.78rem;font-weight:600;letter-spacing:.1em;color:var(--accent2);margin-bottom:.4rem;}
+  .flow ol{display:flex;flex-wrap:wrap;gap:.4rem 0;list-style:none;counter-reset:step;}
+  .flow ol li{
+    counter-increment:step;display:flex;align-items:center;
+    color:var(--ink);font-size:.92rem;font-weight:600;
+  }
+  .flow ol li::before{
+    content:counter(step);
+    background:var(--accent2);color:#fff;border-radius:50%;
+    width:1.5em;height:1.5em;display:inline-flex;align-items:center;justify-content:center;
+    font-size:.8rem;margin-right:.45em;
+  }
+  .flow ol li:not(:last-child)::after{content:"→";color:var(--sub);margin:0 .8em;}
+
+  @media print{
+    body{background:#fff;padding:0;font-size:13px;}
+    .page{max-width:none;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="bar"></div>
+    <h1>{{theme}}</h1>
+    <div class="meta"><span class="chip">聞き手</span>{{audience}}　<span class="chip">日付</span>{{date}}</div>
+  </header>
+
+  <section class="conclusion">
+    <div class="h">一言で言うと</div>
+    <p>{{conclusion}}</p>
+  </section>
+
+  <section class="triad">
+    <div class="card">
+      <div class="h">なぜ（必要な理由）</div>
+      <ul>
+        <li>キーワードのみ・20 字以内目安</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="h">何を（仕組み）</div>
+      <ul>
+        <li>キーワードのみ</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="h">どうやって（使い方）</div>
+      <ul>
+        <li>キーワードのみ</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- EXAMPLE_BLOCK: 具体例。コード断片・数字は載せてよい。説明文は口頭で -->
+  <section class="example">
+    <div class="h">具体例</div>
+    <pre><code>（コード・コマンド・数字）</code></pre>
+  </section>
+
+  <section class="flow">
+    <div class="h">話す順番</div>
+    <ol>
+      <!-- FLOW_START -->
+      <li>結論</li>
+      <li>背景</li>
+      <li>仕組み</li>
+      <li>具体例</li>
+      <!-- FLOW_END -->
+    </ol>
+  </section>
+
+</div>
+</body>
+</html>
