@@ -38,6 +38,9 @@
 # household-budget-manager: 家計エントリ・固定費/収入設定・レシート・月次レポート（個人の金銭情報のため追跡しない）
 /budget-data/
 
+# dividend-recorder: 配当実績台帳・配当書類の画像（個人の金銭情報のため追跡しない）
+/dividend-data/
+
 # proposal-generator: 提案書・見積ドラフト（クライアント名・金額を含むため追跡しない）
 /proposals/
 
@@ -55,6 +58,9 @@
 
 # reading-notes: 読書メモ台帳（個人の学習・思考の記録のため追跡しない）
 /reading-notes/
+
+# doc-planner: ドキュメント企画書 doc brief（クライアント名・案件情報を含みうるため追跡しない）
+/doc-briefs/
 
 # Python: バイトコードキャッシュ・仮想環境（スクリプト実行時の副産物のため追跡しない）
 __pycache__/

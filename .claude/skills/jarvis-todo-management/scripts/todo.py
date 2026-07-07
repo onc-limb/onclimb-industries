@@ -3,7 +3,7 @@
 
 Single source of truth: todo-data/todos.json (current state snapshot).
 Every mutation is also appended to todo-data/events.jsonl (append-only log).
-Design doc: docs/todo-management-redesign-2026-07-02.md (schema_version 1).
+Design doc: docs/todo-management-redesign-2026-07-02.md (schema_version 2).
 
 Data dir resolution order (same convention as other skills):
   1. TODO_DATA environment variable
@@ -21,7 +21,9 @@ import tempfile
 from datetime import date, datetime
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+# v1 -> v2 is additive (optional per-task "priority" object), so v1 ledgers load as-is.
+SUPPORTED_SCHEMA_VERSIONS = (1, 2)
 STATUSES = ("inbox", "todo", "in_progress", "done", "dropped")
 SOURCE_TYPES = ("user", "session", "worklog", "giziroku", "research")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -53,11 +55,12 @@ class Ledger:
         if self.todos_path.exists():
             with self.todos_path.open(encoding="utf-8") as f:
                 data = json.load(f)
-            if data.get("schema_version") != SCHEMA_VERSION:
+            if data.get("schema_version") not in SUPPORTED_SCHEMA_VERSIONS:
                 sys.exit(
                     f"error: unsupported schema_version {data.get('schema_version')!r} "
-                    f"(this CLI supports {SCHEMA_VERSION})"
+                    f"(this CLI supports {SUPPORTED_SCHEMA_VERSIONS})"
                 )
+            data["schema_version"] = SCHEMA_VERSION  # upgrade on next save (additive change)
             return data
         return {"schema_version": SCHEMA_VERSION, "updated_at": now_iso(), "tasks": []}
 
@@ -118,6 +121,7 @@ class Ledger:
             "completed_at": ts if status == "done" else None,
             "google": {"task_id": None, "synced_at": None, "dirty": True},
             "note": getattr(args, "note", None),
+            "priority": None,
         }
 
 
@@ -164,9 +168,20 @@ def validate_due(value: str | None) -> str | None:
     return value
 
 
+def priority_score(t: dict) -> int:
+    """impact × urgency (0 when unprioritized). Deterministic ranking key."""
+    p = t.get("priority")
+    if not p:
+        return 0
+    return p["impact"] * p["urgency"]
+
+
 def fmt_task(t: dict) -> str:
     est = f"{t['estimate_min']}m" if t.get("estimate_min") else "-"
     flags = []
+    p = t.get("priority")
+    if p:
+        flags.append(f"prio I{p['impact']}×U{p['urgency']}={priority_score(t)}")
     if t.get("parent_id"):
         flags.append(f"sub of {t['parent_id']}")
     if t["google"]["dirty"]:
@@ -281,6 +296,29 @@ def cmd_note(ledger: Ledger, args: argparse.Namespace) -> None:
     print(fmt_task(task))
 
 
+def cmd_prioritize(ledger: Ledger, args: argparse.Namespace) -> None:
+    """Record an impact/urgency assessment (jarvis-todo-prioritizer writes via this only).
+
+    Intent decision: the caller must have user-confirmed values before invoking
+    ("スキルは提案、確定はユーザー" principle). rationale is required so the
+    assessment stays auditable in events.jsonl.
+    """
+    task = ledger.get(args.task_id)
+    if task["status"] in ("done", "dropped"):
+        sys.exit(f"error: cannot prioritize a {task['status']} task")
+    old = task.get("priority")
+    task["priority"] = {
+        "impact": args.impact,
+        "urgency": args.urgency,
+        "rationale": args.rationale,
+        "assessed_at": now_iso(),
+    }
+    touch(task, dirty=False)  # internal ranking context; Google Tasks has no priority field
+    ledger.log_event(task["id"], "prioritized", {"from": old, "to": task["priority"]})
+    ledger.save()
+    print(fmt_task(task))
+
+
 def cmd_sync_mark(ledger: Ledger, args: argparse.Namespace) -> None:
     task = ledger.get(args.task_id)
     if args.google_task_id:
@@ -303,6 +341,15 @@ def cmd_list(ledger: Ledger, args: argparse.Namespace) -> None:
         tasks = [t for t in tasks if t["project"] == args.project]
     if args.dirty:
         tasks = [t for t in tasks if t["google"]["dirty"]]
+    if args.sort == "priority":
+        # prioritized first (score desc, urgency as tie-breaker), unprioritized keep input order
+        tasks = sorted(
+            tasks,
+            key=lambda t: (
+                -priority_score(t),
+                -(t.get("priority") or {}).get("urgency", 0),
+            ),
+        )
     if args.json:
         print(json.dumps(tasks, ensure_ascii=False, indent=2))
         return
@@ -372,6 +419,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--text", required=True)
     p.set_defaults(func=cmd_note)
 
+    p = sub.add_parser("prioritize", help="record impact/urgency assessment (user-confirmed; see jarvis-todo-prioritizer)")
+    p.add_argument("task_id")
+    p.add_argument("--impact", type=int, choices=range(1, 6), required=True, metavar="1-5",
+                   help="project impact (5 = direct hit on success/income/trust)")
+    p.add_argument("--urgency", type=int, choices=range(1, 6), required=True, metavar="1-5",
+                   help="time pressure (5 = overdue / immediate)")
+    p.add_argument("--rationale", required=True,
+                   help="why these scores (evidence + user agreement summary)")
+    p.set_defaults(func=cmd_prioritize)
+
     p = sub.add_parser("sync-mark", help="record a successful Google Tasks push (clears dirty)")
     p.add_argument("task_id")
     p.add_argument("--google-task-id")
@@ -382,6 +439,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--project")
     p.add_argument("--dirty", action="store_true", help="only tasks pending Google sync")
     p.add_argument("--all", action="store_true", help="include done/dropped")
+    p.add_argument("--sort", choices=("priority",), help="priority: impact×urgency desc, unprioritized last")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_list)
 

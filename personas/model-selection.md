@@ -43,6 +43,7 @@
 | jarvis-record | ピン sonnet | 固定見出しへの整理と確認対話 |
 | jarvis-knowledge-base | ピン sonnet | digest → Obsidian ノートの定型変換 |
 | jarvis-todo-management | ピン sonnet | 台帳操作はスクリプト。マッチング・分割提案は軽い判断 |
+| jarvis-todo-prioritizer | 継承（opus 以上推奨） | 影響度・緊急度の判断と壁打ちが本体。外部期限の裏取り検索は sonnet 委任可。スコア計算・並べ替えはスクリプト |
 | jarvis-issue-planner | 継承（opus 以上推奨） | スコープ・受け入れ条件の判断が本体。コード調査は codebase-reader（sonnet 固定済み）へ委任 |
 | jarvis-reading-notes | 継承 | キャプチャは軽いが、壁打ちの質はセッションモデルそのもの |
 
@@ -50,6 +51,7 @@
 
 | スキル | 指定 | 理由・委任 |
 |---|---|---|
+| friday-doc-planner | 継承（opus 以上推奨） | 目的・読み手・構成を確定する対話ヒアリングと種類判定が本体 |
 | friday-giziroku | ピン sonnet | 抽出・テンプレ流し込みが本体。マスキング漏れを観測したらピンを外す |
 | friday-daily-report | ピン sonnet | 固定テンプレの脱専門用語清書 |
 | friday-proposal-generator | 継承（opus 以上推奨） | 見積・タスク分解の判断とクライアント向け品質 |
@@ -79,6 +81,7 @@
 | ultron-tax-prep-organizer | ピン sonnet | 科目は候補付けのみ。判断が分かれる取引は設計上「要確認」行き |
 | ultron-personal-budget-manager | ピン sonnet | レシート・メール明細の起こしと定型集計 |
 | ultron-family-budget-manager | ピン sonnet | レシート読み取り（失敗は inbox 残しの設計） |
+| ultron-dividend-recorder | ピン sonnet | 配当書類の読み取りと台帳追記。検算・集計はスクリプト |
 | ultron-high-dividend-stock-screener | ピン sonnet | 公開情報の収集・機械的な篩い。銘柄ごとの個別取得は haiku 委任可 |
 | ultron-contract-review-assistant | 継承（opus 以上推奨） | 条項リスクの見落としコストが大きい |
 

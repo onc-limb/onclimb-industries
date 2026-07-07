@@ -72,6 +72,13 @@ projects:
       - my-own-apps
     keywords: []
 
+  - id: dotfiles
+    path_globs:
+      - /Users/satoshi-onga/Documents/dotfiles
+    repos:
+      - dotfiles
+    keywords: []
+
   # 既にディレクトリは存在しないが、記録済み cwd 文字列で過去ログを振り分ける
   - id: skills
     path_globs:

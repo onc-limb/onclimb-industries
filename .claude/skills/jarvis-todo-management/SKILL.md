@@ -43,7 +43,7 @@ metadata:
 
 ```
 todo-data/
-  todos.json          # タスク台帳 (現在状態・単一の真実。schema_version: 1)
+  todos.json          # タスク台帳 (現在状態・単一の真実。schema_version: 2)
   events.jsonl        # 全変更の追記ログ (原料保全。削除・書き換え禁止)
   google_lists.json   # プロジェクト → Google Tasks リスト ID のキャッシュ (同期時に生成)
 ```
@@ -139,7 +139,9 @@ python3 scripts/pipeline.py --skill-root <このスキルのルート> log-end \
 2. **stale 検知** — `in_progress` のまま updated_at が古いタスク・inbox 滞留を**質問形式で**確認する。
    「詰まっている」と断定しない。ユーザーが「問題ない」と答えたら深追いしない。
 3. **分割提案** — 見積なし・60 分超のタスクにフロー B を提案する。
-4. **着手順の提案** — due・project・見積から直近の順序を提案する (決定はユーザー)。
+4. **着手順の提案** — due・project・見積・priority (あれば `list --sort priority`) から
+   直近の順序を提案する (決定はユーザー)。影響度・緊急度の評価が無い/古いタスクが目立つ場合は
+   jarvis-todo-prioritizer での優先順位づけセッションを案内する (このフロー内では評価しない)。
 5. 最後にフロー E (同期) を実行する。
 
 ## フロー E: Google Tasks 同期 (push 一方向)
@@ -176,7 +178,8 @@ python3 scripts/pipeline.py --skill-root <このスキルのルート> log-end \
 | `todo.py split <id> --sub "title\|est"` | 30〜60 分単位のサブタスク化 (`parent_id` 紐づけ) |
 | `todo.py start / done / drop / promote` | 状態遷移。done は親の自動完了チェック付き。drop は `--reason` 必須 |
 | `todo.py edit / note` | 項目修正 / 経緯メモ (ゴール変更等) の events 記録 |
-| `todo.py list` | `--status` `--project` `--dirty` `--all` `--json` で絞り込み |
+| `todo.py list` | `--status` `--project` `--dirty` `--all` `--json` で絞り込み。`--sort priority` で impact×urgency 降順 |
+| `todo.py prioritize <id>` | 影響度・緊急度の記録 (`--impact 1-5 --urgency 1-5 --rationale` 必須)。評価の運用は jarvis-todo-prioritizer が担う |
 | `todo.py sync-mark <id>` | Google push 成功の記録 (dirty クリア) |
 | `pipeline.py` | 自己進化パイプラインのロガー (規約標準・改変禁止) |
 | `evolve.py` | 進化レビュー (規約標準) |

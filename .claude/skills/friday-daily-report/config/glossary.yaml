@@ -37,3 +37,9 @@ terms:
   - term: 3D表示
     say: 立体で見られる表示
     aliases: [3Dビューア, レンダリング]
+  - term: スキル
+    say: AIアシスタントの機能
+    aliases: [AIスキル]
+  - term: 動作ルール
+    say: AIアシスタントの動きを決める設定
+    aliases: [SKILL.md, プロンプト, 指示書]

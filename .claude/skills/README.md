@@ -33,6 +33,20 @@
 例: worklog のログから当日の作業を機械的にまとめる一次記録（`jarvis-record`）は jarvis。
 それを非エンジニア向けに清書・発表資料化する `friday-daily-report` は friday。
 
+### friday 系の 2 段構成（doc planner → 生成スキル）
+
+自由形式の共有ドキュメント（設計書・提案書・技術記事など）は 2 段で作る。
+
+- **Stage 0: `friday-doc-planner`** — 対話で目的（読者の行動レベルまで）× 対象読者を確定し、
+  型（説明/説得/報告）と読まれ方（辞書的/読み物的）を導出、テーマの設定・分解と情報源の確定まで
+  行って、ドキュメント企画書（doc brief）を `doc-briefs/` に作る。
+- **Stage 1: 種類別の生成スキル**（`friday-design-doc-generator` / `friday-proposal-generator` /
+  `friday-tech-article-drafter`）— brief を入力に、骨組み（見出し構成）と本文を生成する。
+  重複ヒアリングは省略。brief 無しの単体起動も従来どおり可。
+
+入力・テンプレートが固定のパイプライン型（`friday-giziroku` / `friday-daily-report`）は
+この 2 段構成の対象外で、従来どおり単体で起動する。
+
 ## 現在のスキル
 
 | スキル | 分類 |
@@ -41,8 +55,10 @@
 | `jarvis-knowledge-base` | 作業記録・一次資料系 |
 | `jarvis-record` | 作業記録・一次資料系 |
 | `jarvis-todo-management` | 作業記録・一次資料系 |
+| `jarvis-todo-prioritizer` | 作業記録・一次資料系 |
 | `jarvis-issue-planner` | 作業記録・一次資料系 |
 | `jarvis-reading-notes` | 作業記録・一次資料系 |
+| `friday-doc-planner` | 共有ドキュメント系 |
 | `friday-daily-report` | 共有ドキュメント系 |
 | `friday-giziroku` | 共有ドキュメント系 |
 | `friday-proposal-generator` | 共有ドキュメント系 |
@@ -73,6 +89,7 @@
 | `ultron-contract-review-assistant` | 事務・金融・資産系 |
 | `ultron-personal-budget-manager` | 事務・金融・資産系 |
 | `ultron-family-budget-manager` | 事務・金融・資産系 |
+| `ultron-dividend-recorder` | 事務・金融・資産系 |
 | `vision-people-memory` | プライベート・人間関係系 |
 | `karen-problem-essence-organizer` | 一時利用・汎用系 |
 | `karen-self-evolving-skill-creator` | 一時利用・汎用系 |
