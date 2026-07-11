@@ -81,6 +81,22 @@ Claude Code のスキル群を管理する個人用リポジトリです。
 - プロジェクト固有の情報（ドキュメント・報告書・思考の整理など）は、そのプロジェクトのディレクトリ配下に
   プロジェクト固有として保存する。詳細な運用ルールは [`CLAUDE.md`](CLAUDE.md) を参照。
 
+### iron-legion（自動実行ワークフロー群）
+
+`projects/iron-legion/` は、自律的に働くワークフロー群を収容する private リポジトリで、
+`projects/` 配下のプロジェクトの実装・改善に頻繁に使う。
+
+| ワークフロー | 役割 | 使いどころ |
+|--------------|------|------------|
+| `extremis/` | 自己改善エンジニアリングループ（Elixir/OTP + Rust sentinel）。GitHub issue を渡すと分解 → 実装 → 検証 → レビュー → PR → マージまで自律実行 | issue ベースの実装を自律実行させたいとき（`extremis -p <project> epic <issue番号>`） |
+| `veronica/` | マネジメント側ディスカバリーループ（Python）。観点カタログで「何をなぜやるべきか」を洗い出し、Go/No-Go を経て extremis 向け issue を起票 | プロダクトに必要なもの（規約・監視・CI/CD・コスト等）の洗い出し・issue 化をしたいとき |
+
+- 対象プロジェクトは `projects/iron-legion/projects.toml` に登録し、`-p/--project` で選択する。
+- `projects/iron-legion-self/` は extremis の自己改善専用クローン。通常の作業は
+  `projects/iron-legion/` 側で行う。
+- 詳細は `projects/iron-legion/README.md` と各ワークフローの README、および
+  [`CLAUDE.md`](CLAUDE.md) の「iron-legion」節を参照。
+
 ## スキルを作る・育てる
 
 - 新規スキルの作り方（分類の決定 → persona 参照 → 命名）は [`CLAUDE.md`](CLAUDE.md) を参照。
