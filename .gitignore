@@ -65,6 +65,9 @@
 # explain-practice: 説明練習のノート・資料・文字起こし・添削記録（業務情報を含みうるため追跡しない）
 /explain-practice-data/
 
+# capture: 対話キャプチャの技術・経験ノート（omni-archive から移行。個人の経験・感情の記録のため追跡しない）
+/capture-data/
+
 # study: 学習用に AI がコードを書かないディレクトリ（個人の学習・試行錯誤のため追跡しない）
 /study/
 

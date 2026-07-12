@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""kb_build: worklog の tech digest を入力に、技術領域ごとの Obsidian ノート群
+"""kb_build: worklog の tech digest と jarvis-capture の技術キャプチャノート
+（capture-data/tech/）を入力に、技術領域ごとの Obsidian ノート群
 （タグ・[[リンク]]入り Markdown）からなるナレッジベース(vault)を生成する。
 
 設計（ideas/knowledge-base-idea.md 準拠）:
-  - 一次ソースは tech digest（一般化済み・マスキング済みで機密が薄い）。
+  - 一次ソースは tech digest（一般化済み・マスキング済みで機密が薄い）と
+    技術キャプチャノート（対話インタビュー由来の技術レベル情報。一般化して書く規約）。
   - digest はプロジェクト×日付で縦割りなので、横串（技術領域ごと）に再編成する。
   - 蓄積場所(vault)と公開場所は分離。出力先は --out / KB_HOME / config で差し替え可、
     既定はリポジトリ直下 knowledge-base/（.gitignore 済み。別 private リポジトリへ移す前提）。
@@ -82,6 +84,24 @@ def load_digest(path):
     return {"id": name, "pid": pid, "date": date, "text": text, "path": path}
 
 
+# capture ノートの擬似プロジェクト id。frontmatter の project/<id> タグには載せない
+# （build_note_prompt / build_merge_prompt で projects から除外する）。
+CAPTURE_PID = "capture"
+
+
+def load_capture_note(path):
+    """capture-data/tech/ のノートを digest と同じ形に載せる。
+    id は 'capture:<ファイル名stem>'（worklog digest の id と衝突しない）。
+    日付は 'YYYY-MM-DD_' プレフィックスから取る（移行分など無ければ ''）。"""
+    with open(path, "r", encoding="utf-8") as f:
+        text = f.read()
+    stem = os.path.basename(path)[:-3]
+    m = re.match(r"^(\d{4}-\d{2}-\d{2})_", stem)
+    date = m.group(1) if m else ""
+    return {"id": "capture:" + stem, "pid": CAPTURE_PID, "date": date,
+            "text": text, "path": path}
+
+
 def digest_index_entry(d):
     """タクソノミー用の compact なインデックス文字列。"""
     text = d["text"]
@@ -101,6 +121,15 @@ def digest_index_entry(d):
                 if ("技術" in l or "タグ" in l or "キーワード" in l or "スキル" in l) and l.strip()]
         if keep:
             parts.append("技術/タグ: " + " | ".join(keep))
+    if len(parts) == 1:
+        # digest の定型見出しが無い入力（capture ノート等）: 見出し一覧 + 本文冒頭で代替
+        headings = [ln[3:].strip() for ln in text.splitlines() if ln.startswith("## ")]
+        if headings:
+            parts.append("見出し: " + "; ".join(headings))
+        body = re.sub(r"^---\n.*?\n---\n", "", text, count=1, flags=re.S)  # frontmatter 除去
+        excerpt = " ".join(body.split())
+        if excerpt:
+            parts.append("抜粋: " + excerpt[:400])
     entry = "\n".join(parts)
     return entry[:MAX_INDEX_CHARS_PER_DIGEST]
 
@@ -111,9 +140,10 @@ def digest_index_entry(d):
 
 TAXONOMY_PROMPT = """\
 あなたは SES エンジニアの技術ナレッジを体系化するアシスタントです。
-以下は、日々の作業ログから生成された「技術整理情報(digest)」の要点インデックス一覧です。
-各 digest はプロジェクト×日付で縦割りになっています。これを **技術領域(トピック)** で
-横串に再編成するためのタクソノミー(分類体系)を作ってください。
+以下は、日々の作業ログから生成された「技術整理情報(digest)」と、本人への対話インタビューで
+記録された「技術キャプチャノート」(id が capture: で始まるもの。技術レベルの自己申告を含む)の
+要点インデックス一覧です。digest はプロジェクト×日付で縦割りになっています。
+これらを **技術領域(トピック)** で横串に再編成するためのタクソノミー(分類体系)を作ってください。
 
 # やること
 - 全 digest を俯瞰し、共通する技術領域・トピックでまとめる。
@@ -190,7 +220,8 @@ def build_taxonomy_prompt(digests):
 
 def build_note_prompt(tech, source_digests, template):
     """ノート生成プロンプトを組み立てる。(prompt, 入力上限で省略した digest id 一覧) を返す。"""
-    projects = sorted(set(d["pid"] for d in source_digests))
+    # capture ノートはプロジェクト非依存なので project/<id> タグの対象から外す
+    projects = sorted(set(d["pid"] for d in source_digests) - {CAPTURE_PID})
     blocks, total, omitted = [], 0, []
     for i, d in enumerate(source_digests):
         block = "===== digest: %s (project=%s, date=%s) =====\n%s" % (
@@ -423,7 +454,8 @@ def build_incr_classify_prompt(existing_techs, new_digests):
 
 def build_merge_prompt(tech, existing_note, new_digests, updated):
     """マージ用プロンプトを組み立てる。(prompt, 入力上限で省略した digest id 一覧) を返す。"""
-    projects = sorted(set(d["pid"] for d in new_digests))
+    # capture ノートはプロジェクト非依存なので project/<id> タグの対象から外す
+    projects = sorted(set(d["pid"] for d in new_digests) - {CAPTURE_PID})
     blocks, total, omitted = [], 0, []
     for i, d in enumerate(new_digests):
         block = "===== digest: %s (project=%s, date=%s) =====\n%s" % (
@@ -612,7 +644,8 @@ def run_incremental(home, note_subdir, digests, state, opts, updated):
 def parse_args(argv):
     opts = {"out": None, "since": None, "until": None, "project": None,
             "limit": None, "dry_run": False, "taxonomy_only": False,
-            "include_unclassified": None, "from_taxonomy": None, "rebuild": False}
+            "include_unclassified": None, "include_capture": None,
+            "from_taxonomy": None, "rebuild": False}
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -638,32 +671,57 @@ def parse_args(argv):
             opts["include_unclassified"] = True; i += 1; continue
         if a == "--no-unclassified":
             opts["include_unclassified"] = False; i += 1; continue
+        if a == "--include-capture":
+            opts["include_capture"] = True; i += 1; continue
+        if a == "--no-capture":
+            opts["include_capture"] = False; i += 1; continue
         sys.stderr.write("[kb] 不明な引数を無視: %s\n" % a)
         i += 1
     return opts
 
 
 def collect_digests(opts, cfg):
-    src_dir = K.digests_dir("tech")
-    if not os.path.isdir(src_dir):
-        sys.stderr.write("[kb] tech digest が見つかりません: %s\n" % src_dir)
-        return []
-    inc_uncl = opts["include_unclassified"]
-    if inc_uncl is None:
-        inc_uncl = cfg.get("include_unclassified", True)
     digests = []
-    for path in sorted(glob.glob(os.path.join(src_dir, "*.md"))):
-        name = os.path.basename(path)[:-3]
-        pid, date = split_id(name)
-        if pid == "_unclassified" and not inc_uncl:
-            continue
-        if opts["project"] and pid != opts["project"]:
-            continue
-        if opts["since"] and date and date < opts["since"]:
-            continue
-        if opts["until"] and date and date > opts["until"]:
-            continue
-        digests.append(load_digest(path))
+    src_dir = K.digests_dir("tech")
+    if os.path.isdir(src_dir):
+        inc_uncl = opts["include_unclassified"]
+        if inc_uncl is None:
+            inc_uncl = cfg.get("include_unclassified", True)
+        for path in sorted(glob.glob(os.path.join(src_dir, "*.md"))):
+            name = os.path.basename(path)[:-3]
+            pid, date = split_id(name)
+            if pid == "_unclassified" and not inc_uncl:
+                continue
+            if opts["project"] and pid != opts["project"]:
+                continue
+            if opts["since"] and date and date < opts["since"]:
+                continue
+            if opts["until"] and date and date > opts["until"]:
+                continue
+            digests.append(load_digest(path))
+    else:
+        sys.stderr.write("[kb] tech digest が見つかりません: %s\n" % src_dir)
+
+    # capture-data/tech/ の技術キャプチャノート（jarvis-capture）も一次ソースに含める。
+    # プロジェクト非依存のため --project 指定時は対象外。
+    inc_cap = opts["include_capture"]
+    if inc_cap is None:
+        inc_cap = cfg.get("include_capture", True)
+    if inc_cap and opts["project"]:
+        sys.stderr.write("[kb] --project 指定のため capture ノートは対象外\n")
+    elif inc_cap:
+        cap_dir = K.capture_tech_dir()
+        if os.path.isdir(cap_dir):
+            n_before = len(digests)
+            for path in sorted(glob.glob(os.path.join(cap_dir, "*.md"))):
+                d = load_capture_note(path)
+                if opts["since"] and d["date"] and d["date"] < opts["since"]:
+                    continue
+                if opts["until"] and d["date"] and d["date"] > opts["until"]:
+                    continue
+                digests.append(d)
+            sys.stderr.write("[kb] capture ノート: %d 件（%s）\n"
+                             % (len(digests) - n_before, cap_dir))
     return digests
 
 
@@ -683,7 +741,9 @@ def main():
         sys.stderr.write("[kb] 対象 digest が 0 件。終了。\n")
         return 1
     valid_ids = set(d["id"] for d in digests)
-    sys.stderr.write("[kb] 対象 tech digest: %d 件 -> 出力先: %s\n" % (len(digests), home))
+    n_cap = sum(1 for d in digests if d["pid"] == CAPTURE_PID)
+    sys.stderr.write("[kb] 対象: %d 件（tech digest %d / capture %d）-> 出力先: %s\n"
+                     % (len(digests), len(digests) - n_cap, n_cap, home))
 
     os.makedirs(home, exist_ok=True)
     notes_dir = os.path.join(home, note_subdir)

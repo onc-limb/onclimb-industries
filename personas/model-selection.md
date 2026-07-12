@@ -46,6 +46,7 @@
 | jarvis-todo-prioritizer | 継承（opus 以上推奨） | 影響度・緊急度の判断と壁打ちが本体。外部期限の裏取り検索は sonnet 委任可。スコア計算・並べ替えはスクリプト |
 | jarvis-issue-planner | 継承（opus 以上推奨） | スコープ・受け入れ条件の判断が本体。コード調査は codebase-reader（sonnet 固定済み）へ委任 |
 | jarvis-reading-notes | 継承 | キャプチャは軽いが、壁打ちの質はセッションモデルそのもの |
+| jarvis-capture | 継承 | 深掘りインタビューの質問の質が本体（一問一答の定型作業ではない） |
 
 ### friday（共有ドキュメント系）
 
@@ -58,6 +59,7 @@
 | friday-tech-article-drafter | 継承（opus / fable 推奨） | 公開文章の品質が本体 |
 | friday-design-doc-generator | 継承 | コード調査は codebase-reader（sonnet）へ委任、本文はセッションモデル |
 | friday-procedure-doc-generator | 継承 | 手順・コマンドの正確性が本体（誤ったコマンドの実害が大きい）。操作の採取は codebase-reader（sonnet）へ委任可 |
+| friday-skillset-writer | 継承（opus / fable 推奨） | 外部公開するプロフィール文章の品質と誇張・機密混入の判定が本体 |
 
 ### arc-reactor（コーディング・レビュー系）— 全スキル継承（ピンしない）
 

@@ -59,6 +59,7 @@
 | `jarvis-todo-prioritizer` | 作業記録・一次資料系 |
 | `jarvis-issue-planner` | 作業記録・一次資料系 |
 | `jarvis-reading-notes` | 作業記録・一次資料系 |
+| `jarvis-capture` | 作業記録・一次資料系 |
 | `friday-doc-planner` | 共有ドキュメント系 |
 | `friday-daily-report` | 共有ドキュメント系 |
 | `friday-giziroku` | 共有ドキュメント系 |
@@ -66,6 +67,7 @@
 | `friday-tech-article-drafter` | 共有ドキュメント系 |
 | `friday-design-doc-generator` | 共有ドキュメント系 |
 | `friday-procedure-doc-generator` | 共有ドキュメント系 |
+| `friday-skillset-writer` | 共有ドキュメント系 |
 | `arc-reactor-code-review` | コーディング・レビュー系 |
 | `arc-reactor-test-scaffolder` | コーディング・レビュー系 |
 | `arc-reactor-codebase-onboarding` | コーディング・レビュー系 |

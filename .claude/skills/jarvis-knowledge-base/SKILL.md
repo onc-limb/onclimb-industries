@@ -1,16 +1,17 @@
 ---
 name: jarvis-knowledge-base
-description: >-
 model: sonnet
-  worklog が生成した技術整理情報(tech digest)を入力に、技術領域ごとに集約した
-  Obsidian 形式のナレッジベース(vault)を生成・更新するスキル。タグ・[[リンク]]入りの
-  Markdown ノートを技術別に作る。「ナレッジベース作って」「知見をまとめて」「vault 更新して」
-  「技術ノート作って」等で起動する。
+description: >-
+  worklog が生成した技術整理情報(tech digest)と jarvis-capture の技術キャプチャノート
+  (capture-data/tech/)を入力に、技術領域ごとに集約した Obsidian 形式のナレッジベース(vault)を
+  生成・更新するスキル。タグ・[[リンク]]入りの Markdown ノートを技術別に作る。
+  「ナレッジベース作って」「知見をまとめて」「vault 更新して」「技術ノート作って」等で起動する。
 ---
 
 # knowledge-base — 技術ナレッジベース生成スキル
 
-worklog が縦割り（プロジェクト×日付）で吐き出す `tech` digest を、**技術領域で横串に**
+worklog が縦割り（プロジェクト×日付）で吐き出す `tech` digest と、jarvis-capture が
+対話インタビューで記録する技術キャプチャノートを、**技術領域で横串に**
 再編成し、Obsidian で使えるタグ・リンク付き Markdown ノート群（vault）を生成する。
 
 > 設計の出典: `ideas/knowledge-base-idea.md`。
@@ -21,7 +22,10 @@ worklog が縦割り（プロジェクト×日付）で吐き出す `tech` diges
 ## 場所（コードとデータは分離）
 
 - ツール・設定: このスキルディレクトリ `.claude/skills/jarvis-knowledge-base/`（`bin/` `config/` `templates/`）
-- **入力**: worklog の `worklog-data/digests/tech/*.md`（`WORKLOG_DATA` 環境変数で上書き可）
+- **入力（2 系統）**:
+  - worklog の `worklog-data/digests/tech/*.md`（`WORKLOG_DATA` 環境変数で上書き可）
+  - jarvis-capture の `capture-data/tech/*.md`（`CAPTURE_DATA` 環境変数で上書き可。
+    `--no-capture` / config `include_capture: false` で除外可）
 - **出力(vault)**: 既定はリポジトリ直下 `knowledge-base/`。`--out` / `KB_HOME` / `config/kb.yaml` で変更可。
   既定の出力先はリポジトリ直下 `.gitignore` で除外済み。
 
@@ -32,7 +36,8 @@ worklog が縦割り（プロジェクト×日付）で吐き出す `tech` diges
 | 「ナレッジベース作って」「知見をまとめて」「vault 作って/更新して」「技術ノート作って」 | 標準フロー（初回=全構築 / 2回目以降=増分更新） |
 | 「最初から作り直して」「全部再生成」 | `--rebuild`（タクソノミーから全再構築） |
 | 「最近のぶんだけ」「6月以降で」 | `--since YYYY-MM-DD` を付ける |
-| 「onclimb-industries の知見だけ」 | `--project <id>` を付ける |
+| 「onclimb-industries の知見だけ」 | `--project <id>` を付ける（capture ノートはプロジェクト非依存のため対象外になる） |
+| 「worklog の分だけ」「capture は入れないで」 | `--no-capture` を付ける |
 | 「分類体系だけ見たい」「どんな技術領域になるか」 | `--taxonomy-only`（ノート生成せず JSON + index のみ。取り込み済み扱いにしない） |
 | 「動作確認」「お試しで少しだけ」 | `--limit N`（技術ノートを先頭 N 件に制限。取り込み済み扱いにしない） |
 
@@ -70,6 +75,7 @@ python3 "$SKILL/bin/kb_build.py" --out ~/obsidian/knowledge   # 出力先を実 
 python3 "$SKILL/bin/kb_build.py" --since 2026-06-01           # 指定日以降の digest のみ
 python3 "$SKILL/bin/kb_build.py" --project onclimb-industries             # 指定プロジェクトのみ
 python3 "$SKILL/bin/kb_build.py" --no-unclassified            # _unclassified を除外
+python3 "$SKILL/bin/kb_build.py" --no-capture                 # capture-data/tech を除外（worklog digest のみ）
 python3 "$SKILL/bin/kb_build.py" --limit 3                    # 技術ノートを先頭3件だけ（確認用。seen は空で保存）
 python3 "$SKILL/bin/kb_build.py" --taxonomy-only              # 分類体系(JSON)+index のみ（全再クラスタ。seen は空で保存）
 python3 "$SKILL/bin/kb_build.py" --dry-run                    # claude を呼ばずプロンプトのみ出力
@@ -77,7 +83,11 @@ python3 "$SKILL/bin/kb_build.py" --dry-run                    # claude を呼ば
 
 ## 注意
 
-- **入力が無いと動かない**: 先に worklog で `tech` digest を生成しておくこと（`summarize.py`）。
+- **入力が無いと動かない**: worklog の `tech` digest（`summarize.py` で生成）か、
+  jarvis-capture の技術キャプチャノート（`capture-data/tech/`）のどちらかが必要。
+- **capture ノートは新規ファイル単位で取り込む**: 取り込み済み管理（`seen`）はファイル名基準のため、
+  既存 capture ノートを後から編集しても再取り込みされない。技術レベルの更新は
+  jarvis-capture 側の規約どおり「新しい日付ファイルを積む」こと。
 - **機密**: digest は collect 段階でマスキング済み。ノート生成プロンプトでも一般化・機密非混入を厳守させている。
   公開派生（ポートフォリオ等）は、この vault からさらにマスキング＋再構成を経た抜粋のみを使う（蓄積≠公開）。
 - **claude CLI 必須**: タクソノミー/ノート生成は `claude -p` を使う（ツールは全無効化してテキスト生成のみ）。

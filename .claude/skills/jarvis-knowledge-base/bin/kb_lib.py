@@ -60,6 +60,22 @@ def digests_dir(fmt="tech"):
     return os.path.join(worklog_data_home(), "digests", fmt)
 
 
+def capture_data_home():
+    """jarvis-capture の生成データ（技術/経験キャプチャノート）の基点。
+    優先: CAPTURE_DATA → リポジトリ直下 capture-data/ → ~/capture-data。"""
+    env = os.environ.get("CAPTURE_DATA")
+    if env:
+        return os.path.abspath(os.path.expanduser(env))
+    repo = find_repo_root(skill_root())
+    if repo:
+        return os.path.join(repo, "capture-data")
+    return os.path.expanduser("~/capture-data")
+
+
+def capture_tech_dir():
+    return os.path.join(capture_data_home(), "tech")
+
+
 def kb_home(override=None):
     """ナレッジベース(vault)の出力先。
     優先: 明示引数(--out) → KB_HOME 環境変数 → config の output_dir

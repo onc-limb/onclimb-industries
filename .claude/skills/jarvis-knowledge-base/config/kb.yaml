@@ -14,3 +14,7 @@ note_subdir: tech
 # 技術知見は本来プロジェクト非依存で転用可能なので既定 true。
 # 機密混入が気になる場合や精度を上げたい場合は false（--no-unclassified でも上書き可）。
 include_unclassified: true
+
+# jarvis-capture の技術キャプチャノート（capture-data/tech/）も取り込むか。
+# worklog digest と並ぶ一次ソースなので既定 true（--no-capture でも上書き可）。
+include_capture: true
