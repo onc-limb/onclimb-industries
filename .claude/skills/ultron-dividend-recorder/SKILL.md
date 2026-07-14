@@ -35,6 +35,10 @@ metadata:
       └── processed/      # 記録済み画像の退避先（二重取り込み防止・一次資料の保全）
   ```
 - records.json のパスは環境変数 `DIVIDEND_RECORDS_PATH` または `--records` で上書き可。
+- `dividend-data/` は Google Drive（`マイドライブ/onclimb-industries/配当/`）への
+  シンボリックリンクになっている場合がある（2026-07-14 設定。ultron-family-budget-manager の
+  `references/google-drive-sync-setup.md` と同じ方式・単一ライター運用）。パスは変わらないので
+  スキル・スクリプトはそのまま動く。リンク先が読めない場合は Drive for Desktop の起動を確認する。
 - レコード形式は personal-dashboard 側 `shared/dividends.ts` の `DividendRecord` と**完全一致**させる
   （camelCase・7 フィールド。勝手にフィールドを増やさない）:
   `{ stockName, dividendPerShare, shares, amount, recordDate, sourceImage, extractedAt }`

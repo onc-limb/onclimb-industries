@@ -39,7 +39,8 @@
 /budget-data/
 
 # dividend-recorder: 配当実績台帳・配当書類の画像（個人の金銭情報のため追跡しない）
-/dividend-data/
+# 末尾スラッシュ無し: Google Drive へのシンボリックリンクのため（ディレクトリ限定だとマッチしない）
+/dividend-data
 
 # proposal-generator: 提案書・見積ドラフト（クライアント名・金額を含むため追跡しない）
 /proposals/
