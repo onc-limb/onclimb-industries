@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-study-writes.py\""
+            "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/block-study-writes.py\"; [ -f \"$f\" ] && exec python3 \"$f\" || exit 0"
           }
         ]
       }
