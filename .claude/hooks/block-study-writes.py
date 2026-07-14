@@ -26,18 +26,20 @@ def main() -> int:
     if not path:
         return 0
 
-    project = os.environ.get("CLAUDE_PROJECT_DIR")
-    if not project:
-        # .claude/hooks/this.py -> project ルートへ 3 階層上る
-        project = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        )
-    study = os.path.join(os.path.abspath(project), "study")
+    # 守る study/ はこのスクリプトの位置から解決する。
+    # CLAUDE_PROJECT_DIR は projects/ 配下の別 git リポジトリで作業中に
+    # そちらへ解決されることがあり、その値を基準にすると誤った study/ を
+    # 指してしまうため使わない（.claude/hooks/this.py -> ルートへ 3 階層上る）。
+    project = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    study = os.path.join(project, "study")
 
     if os.path.isabs(path):
         target = os.path.abspath(path)
     else:
-        target = os.path.abspath(os.path.join(project, path))
+        # 相対パスは実際の作業ディレクトリ基準で解決する
+        target = os.path.abspath(path)
 
     if target == study or target.startswith(study + os.sep):
         sys.stderr.write(
