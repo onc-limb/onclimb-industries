@@ -1,0 +1,222 @@
+{
+  "_meta": {
+    "about": "コマンド別の品質チェック観点(checkpoints)とアンチパターン(antipatterns)の辞書。人間もよく使うコマンドを対象に『使うとき何を確認すべきか』を学習素材として集約する。育てる資産: 気づいた観点・アンチパターンをここに追記する。",
+    "fields": {
+      "category": "分類(vcs/search/file/network/text/proc/container/pkg/build 等)",
+      "human_common": "人間も日常的に使うコマンドか(学習の主対象)",
+      "checkpoints": "そのコマンドを使うとき確認すべき品質観点(学習ポイント)",
+      "antipatterns": "ログ中の raw コマンドに regex 一致したら指摘する。label/advice/regex"
+    }
+  },
+
+  "git": {
+    "category": "vcs", "human_common": true,
+    "checkpoints": [
+      "コミット前に `git status` / `git diff --staged` で差分を確認したか",
+      "機能変更とリファクタリングはコミットを分ける",
+      "`git add -A` は意図しないファイルまで載せやすい。パス指定 or `git add -p` を検討",
+      "`--force` は `--force-with-lease` にして他者の push を潰さない"
+    ],
+    "antipatterns": [
+      {"regex": "git\\s+push\\s+.*--force(?!-with-lease)", "label": "素の --force push", "advice": "--force-with-lease を使い、リモートの想定外更新を潰さない"},
+      {"regex": "git\\s+commit\\s+.*(-a\\b|--all)", "label": "commit -a", "advice": "-a は全変更を無差別に載せる。ステージを確認してから commit する"},
+      {"regex": "git\\s+checkout\\s+\\.", "label": "git checkout . で全破棄", "advice": "作業中の変更を無確認で失う。git stash を検討"}
+    ]
+  },
+  "grep": {
+    "category": "search", "human_common": true,
+    "checkpoints": [
+      "再帰検索は `grep -rn`。行番号 `-n` を付けると追いやすい",
+      "大規模リポジトリでは `rg`(ripgrep) の方が速く .gitignore も尊重する",
+      "パターンはクォートしてシェル展開・グロブ誤爆を防ぐ",
+      "固定文字列検索は `-F` で正規表現の誤解釈を避ける"
+    ],
+    "antipatterns": [
+      {"regex": "grep\\s+-r\\b(?![^|]*-n)", "label": "grep -r で行番号なし", "advice": "-n を足すと該当行が特定しやすい"},
+      {"regex": "cat\\s+\\S+\\s*\\|\\s*grep", "label": "cat | grep (UUOC)", "advice": "grep pattern file と直接渡せる。無駄な cat を挟まない"}
+    ]
+  },
+  "find": {
+    "category": "search", "human_common": true,
+    "checkpoints": [
+      "`-exec ... {} +` か `-print0 | xargs -0` で空白/改行入りパス名を安全に扱う",
+      "削除系は必ず先に `-print` で対象を確認してから `-delete`/`-exec rm` に変える",
+      "`-name` はクォートしてシェルのグロブ展開を防ぐ"
+    ],
+    "antipatterns": [
+      {"regex": "find\\s+.*\\|\\s*xargs\\s+(?!-0)", "label": "xargs に -0 なし", "advice": "空白入りパスで壊れる。find -print0 | xargs -0 にする"},
+      {"regex": "find\\s+.*-delete", "label": "find -delete", "advice": "対象を -print で確認してから削除する"}
+    ]
+  },
+  "rm": {
+    "category": "file", "human_common": true,
+    "checkpoints": [
+      "`-rf` は変数展開(`rm -rf $DIR/`)で空変数だと破滅的。パスを直書き or 事前チェック",
+      "削除前に対象を `ls` で確認する習慣を持つ",
+      "重要ファイルは削除でなく `trash`/退避を検討"
+    ],
+    "antipatterns": [
+      {"regex": "rm\\s+-[a-zA-Z]*r[a-zA-Z]*f", "label": "rm -rf", "advice": "対象を確認。変数展開先が空になり得ないか点検する"}
+    ]
+  },
+  "cp": {
+    "category": "file", "human_common": true,
+    "checkpoints": [
+      "ディレクトリ複製は `-r`。上書き確認したいなら `-i`",
+      "権限/タイムスタンプを保つなら `-p` / アーカイブ複製は `-a`"
+    ],
+    "antipatterns": []
+  },
+  "mv": {
+    "category": "file", "human_common": true,
+    "checkpoints": [
+      "上書きの危険があるなら `-i`(確認) か `-n`(既存を上書きしない)",
+      "移動先がファイルかディレクトリかで挙動が変わる。ディレクトリは末尾 / を明示"
+    ],
+    "antipatterns": []
+  },
+  "chmod": {
+    "category": "file", "human_common": true,
+    "checkpoints": [
+      "`777` は誰でも書込・実行可で危険。必要最小の権限(例 644/755)にする",
+      "再帰 `-R` は影響範囲が広い。対象ディレクトリを限定する"
+    ],
+    "antipatterns": [
+      {"regex": "chmod\\s+(-R\\s+)?777", "label": "chmod 777", "advice": "過剰権限。644(ファイル)/755(ディレクトリ/実行) 等に絞る"}
+    ]
+  },
+  "curl": {
+    "category": "network", "human_common": true,
+    "checkpoints": [
+      "スクリプトを `curl ... | sh` で直接実行しない(中身を確認してから)",
+      "失敗を検知するなら `-fsS`(-f で HTTP エラーを失敗扱い)",
+      "`-k`/`--insecure` は TLS 検証を無効化する。原則使わない",
+      "リダイレクト追従が必要なら `-L`"
+    ],
+    "antipatterns": [
+      {"regex": "curl\\s+[^|]*\\|\\s*(sudo\\s+)?(sh|bash)", "label": "curl | sh", "advice": "取得スクリプトを無確認で実行している。一度保存し内容を確認する"},
+      {"regex": "curl\\s+.*(-k\\b|--insecure)", "label": "curl --insecure", "advice": "TLS 検証を無効化している。証明書問題は根本対処する"}
+    ]
+  },
+  "wget": {
+    "category": "network", "human_common": true,
+    "checkpoints": [
+      "`wget ... | sh` で直接実行しない",
+      "TLS 検証を切る `--no-check-certificate` は原則使わない"
+    ],
+    "antipatterns": [
+      {"regex": "wget\\s+[^|]*\\|\\s*(sudo\\s+)?(sh|bash)", "label": "wget | sh", "advice": "取得スクリプトを無確認で実行している。保存して確認する"},
+      {"regex": "wget\\s+.*--no-check-certificate", "label": "wget 証明書検証無効", "advice": "TLS 検証を切らず、証明書問題を根本対処する"}
+    ]
+  },
+  "tar": {
+    "category": "file", "human_common": true,
+    "checkpoints": [
+      "展開前に `tar tf` で中身を確認(絶対パス/../ を含む悪意ある tarball 対策)",
+      "作成/展開のフラグ(-c/-x)と -f の順を取り違えない"
+    ],
+    "antipatterns": []
+  },
+  "sed": {
+    "category": "text", "human_common": true,
+    "checkpoints": [
+      "`-i`(インプレース書換え)は不可逆。先に `-i` なしで結果を確認してから適用",
+      "GNU sed と BSD(mac) sed で `-i` の引数仕様が違う(mac は `-i ''`)"
+    ],
+    "antipatterns": [
+      {"regex": "sed\\s+-i(?!\\.)\\s", "label": "sed -i(バックアップなし)", "advice": "mac 互換性と安全のため -i.bak 等でバックアップを残すか、先に結果を確認する"}
+    ]
+  },
+  "awk": {
+    "category": "text", "human_common": false,
+    "checkpoints": [
+      "単純な列抽出は `cut` の方が読みやすいこともある",
+      "フィールド区切りは `-F` を明示する"
+    ],
+    "antipatterns": []
+  },
+  "ls": {
+    "category": "file", "human_common": true,
+    "checkpoints": [
+      "スクリプトで `ls` の出力をパースしない(改行/特殊文字で壊れる。glob や find を使う)"
+    ],
+    "antipatterns": [
+      {"regex": "ls\\s+[^|]*\\|\\s*(grep|awk|wc)", "label": "ls の出力をパース", "advice": "ls 出力のパースは壊れやすい。glob/find/stat を使う"}
+    ]
+  },
+  "cat": {
+    "category": "text", "human_common": true,
+    "checkpoints": [
+      "1 ファイルを grep/コマンドに渡すだけなら cat を挟まない(UUOC)"
+    ],
+    "antipatterns": []
+  },
+  "docker": {
+    "category": "container", "human_common": true,
+    "checkpoints": [
+      "`latest` タグ固定は再現性を損なう。バージョンタグを指定する",
+      "`--privileged` は権限過剰。必要な capability だけ付与する",
+      "ビルドキャッシュ・不要イメージの掃除(`docker system prune`)を意識する"
+    ],
+    "antipatterns": [
+      {"regex": "docker\\s+run\\s+.*--privileged", "label": "docker --privileged", "advice": "権限過剰。--cap-add で必要な権限だけ付ける"}
+    ]
+  },
+  "ssh": {
+    "category": "network", "human_common": true,
+    "checkpoints": [
+      "`StrictHostKeyChecking=no` はホスト鍵検証を無効化する。原則使わない",
+      "鍵はパスフレーズ付き + ssh-agent 運用が安全"
+    ],
+    "antipatterns": [
+      {"regex": "StrictHostKeyChecking=no", "label": "ホスト鍵検証無効", "advice": "中間者攻撃を検知できなくなる。known_hosts を正しく管理する"}
+    ]
+  },
+  "kill": {
+    "category": "proc", "human_common": true,
+    "checkpoints": [
+      "まず `SIGTERM`(既定)で穏やかに止める。`-9`(SIGKILL) は最後の手段",
+      "PID の取り違えに注意(`pgrep`/`pidof` で確認)"
+    ],
+    "antipatterns": [
+      {"regex": "kill\\s+-9\\b", "label": "kill -9 即用", "advice": "SIGKILL はクリーンアップを飛ばす。まず SIGTERM を試す"}
+    ]
+  },
+  "npm": {
+    "category": "pkg", "human_common": true,
+    "checkpoints": [
+      "CI/再現性重視なら `npm ci`(lockfile 厳守)。`npm install` は lockfile を更新し得る",
+      "`sudo npm install -g` は避け、バージョンマネージャや権限設計で回避する"
+    ],
+    "antipatterns": [
+      {"regex": "sudo\\s+npm\\s+install", "label": "sudo npm install", "advice": "グローバル汚染/権限問題の温床。nvm 等でユーザー空間に入れる"}
+    ]
+  },
+  "pip": {
+    "category": "pkg", "human_common": true,
+    "checkpoints": [
+      "システム Python へ直接入れず、venv を使う",
+      "`sudo pip install` はシステムを壊しやすい"
+    ],
+    "antipatterns": [
+      {"regex": "sudo\\s+pip\\d?\\s+install", "label": "sudo pip install", "advice": "システム Python を汚す。venv/--user を使う"}
+    ]
+  },
+  "chown": {
+    "category": "file", "human_common": true,
+    "checkpoints": [
+      "再帰 `-R` はシステムパスに当てると深刻。対象を限定する"
+    ],
+    "antipatterns": []
+  },
+  "mkdir": {
+    "category": "file", "human_common": true,
+    "checkpoints": ["親ごと作るなら `-p`。既存でもエラーにならない"],
+    "antipatterns": []
+  },
+  "xargs": {
+    "category": "text", "human_common": false,
+    "checkpoints": ["`-0`(NUL 区切り) + find -print0 で空白/改行入りを安全に扱う"],
+    "antipatterns": []
+  }
+}

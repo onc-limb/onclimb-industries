@@ -75,6 +75,9 @@
 # skillset-writer: homepage スキルセット紹介の下書き・候補リスト（公開前の自己評価・案件情報を含みうるため追跡しない）
 /skillset-draft/
 
+# cli-command-quality: CLI コマンド品質分析の出力（私的パス・危険コマンド例を含みうるため追跡しない）
+/cli-quality/
+
 # Python: バイトコードキャッシュ・仮想環境（スクリプト実行時の副産物のため追跡しない）
 __pycache__/
 *.pyc
