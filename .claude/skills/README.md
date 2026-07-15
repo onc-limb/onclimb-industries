@@ -103,6 +103,7 @@
 | `jocasta-eval-designer` | LLM 評価・検証系 |
 | `jocasta-eval-runner` | LLM 評価・検証系 |
 | `jocasta-eval-improver` | LLM 評価・検証系 |
+| `jocasta-eval-autopilot` | LLM 評価・検証系 |
 | `karen-problem-essence-organizer` | 一時利用・汎用系 |
 | `karen-self-evolving-skill-creator` | 一時利用・汎用系 |
 | `karen-learning-roadmap` | 一時利用・汎用系 |
