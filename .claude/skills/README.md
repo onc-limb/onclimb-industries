@@ -23,6 +23,7 @@
 | `griot` | 練習・コーチング系 | 報告説明・プレゼン・英会話など、自分が話して伝える力を鍛える個人練習・コーチング。聞き手は自分自身 |
 | `karen` | 一時利用・汎用系 | 用途が固定されない汎用・一時利用 |
 | `vision` | プライベート・人間関係系 | 仕事の成果物ではない私生活領域（人間関係の記録・家族・個人の暮らし）。読み手は自分だけ |
+| `jocasta` | LLM 評価・検証系 | LLM を使ったアプリケーションの生成品質の検証・改善（理想/NG 回答の定義、LLM-as-a-judge による採点、壁打ちによる根本改善） |
 
 ### jarvis と friday の判断軸
 
@@ -99,6 +100,9 @@
 | `griot-explain-coach` | 練習・コーチング系 |
 | `griot-explain-english` | 練習・コーチング系 |
 | `vision-people-memory` | プライベート・人間関係系 |
+| `jocasta-eval-designer` | LLM 評価・検証系 |
+| `jocasta-eval-runner` | LLM 評価・検証系 |
+| `jocasta-eval-improver` | LLM 評価・検証系 |
 | `karen-problem-essence-organizer` | 一時利用・汎用系 |
 | `karen-self-evolving-skill-creator` | 一時利用・汎用系 |
 | `karen-learning-roadmap` | 一時利用・汎用系 |

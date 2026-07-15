@@ -1,0 +1,35 @@
+{
+  "app": {
+    "name": "<app-slug>",
+    "description": "アプリの説明（ジャッジプロンプトに埋め込まれるため、何のためのアプリかを 1〜2 文で）"
+  },
+  "adapter": {
+    "type": "command",
+    "command": ["bash", "app/answer.sh"],
+    "timeout_sec": 120,
+    "_http の場合": {
+      "type": "http",
+      "url": "http://localhost:8080/api/ask",
+      "method": "POST",
+      "request_template": { "question": "{question}" },
+      "response_path": "answer",
+      "headers": {}
+    },
+    "_manual の場合": {
+      "type": "manual",
+      "説明": "collect は使わず runs/<run-id>/responses.jsonl を手動配置する"
+    }
+  },
+  "judge": {
+    "command": ["claude", "-p", "--model", "claude-sonnet-5", "--output-format", "json"],
+    "timeout_sec": 300,
+    "metrics": ["correctness", "completeness", "ng_compliance", "relevancy"],
+    "weights": {
+      "correctness": 0.35,
+      "completeness": 0.25,
+      "ng_compliance": 0.25,
+      "relevancy": 0.15
+    },
+    "pass_threshold": 0.7
+  }
+}
