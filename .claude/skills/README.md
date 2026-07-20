@@ -96,6 +96,7 @@
 | `ultron-personal-budget-manager` | 事務・金融・資産系 |
 | `ultron-family-budget-manager` | 事務・金融・資産系 |
 | `ultron-dividend-recorder` | 事務・金融・資産系 |
+| `ultron-portfolio-analyzer` | 事務・金融・資産系 |
 | `griot-explain-prep` | 練習・コーチング系 |
 | `griot-explain-coach` | 練習・コーチング系 |
 | `griot-explain-english` | 練習・コーチング系 |

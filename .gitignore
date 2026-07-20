@@ -42,6 +42,10 @@
 # 末尾スラッシュ無し: Google Drive へのシンボリックリンクのため（ディレクトリ限定だとマッチしない）
 /dividend-data
 
+# portfolio-analyzer: 証券口座の保有CSV・配当履歴CSV・スナップショット・分析レポート
+# （証券口座の保有銘柄・取得単価・損益など個人資産情報を含むため追跡しない）
+/portfolio-data/
+
 # proposal-generator: 提案書・見積ドラフト（クライアント名・金額を含むため追跡しない）
 /proposals/
 
