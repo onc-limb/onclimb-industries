@@ -5,8 +5,18 @@
 # --- コア判定しきい値（固定対象。進化させない） ---
 yield_min: 4.0            # 配当利回りの下限(%)
 payout_max: 50.0          # 配当性向の上限(%)（< 50% で合格）
-min_periods: 3            # 配当推移・営業利益を見る最小期数（3〜5 期）
-allow_dividend_cuts: 0    # 評価期間内で許容する減配回数（0=減配年なし）
+dividend_periods: 5       # 配当推移を見る期数（直近 5 期）
+allow_dividend_cuts: 0    # 評価期間内で許容する減配回数（0=減配年なし。同額維持は OK）
+op_profit_periods: 10     # 営業利益の黒字継続を見る期数（直近 10 期すべて黒字）
+op_cf_periods: 10         # 営業CF の黒字継続を見る期数（直近 10 期すべて黒字）
+revenue_periods: 5        # 売上高の右肩上がりを見る期数（直近 5 期）
+allow_revenue_declines: 1 # 評価期間内で許容する売上減少回数（1=一時的な落ち込みを 1 回まで許容）
+eps_periods: 5            # EPS の右肩上がりを見る期数（直近 5 期）
+allow_eps_declines: 1     # 評価期間内で許容する EPS 減少回数（1=一時的な落ち込みを 1 回まで許容）
+equity_ratio_min: 40.0    # 自己資本比率の下限(%)
+dividend_cagr_min: 5.0    # 増配率の下限(直近 dividend_periods 期の年平均成長率 %)。株価上昇の経路3
+eps_cagr_min: 5.0         # EPS 成長率の下限(直近 eps_periods 期の年平均成長率 %)。株価上昇の経路1
+roe_min: 8.0              # ROE の下限(%)。資本効率が低いと利益成長も PBR 改善も起きにくい
 
 # --- 運用パラメータ（ユーザー発話で都度上書き可） ---
 batch_size: 20            # 1 回の起動で調査する未調査銘柄の件数（サイト負荷とトークン量のバランス）

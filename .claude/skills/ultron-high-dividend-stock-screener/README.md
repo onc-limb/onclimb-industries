@@ -2,8 +2,10 @@
 
 日本の高配当株を screening して「おすすめ候補リスト」を作るスキル。
 公開情報（Yahoo!ファイナンス / IR BANK / EDINET 等）から **配当利回り 4% 以上**の日本株を拾い、
-**配当が右肩上がり・配当性向 50% 未満・営業利益に赤字なし**の健全性で篩い、
-**REIT / 投資法人 / インフラファンド**を除外する。調べた会社は**法人番号で台帳に記録**して
+**健全性**（5年減配なし・配当性向 50% 未満・10年営業黒字・売上/EPS 右肩上がり(5年)・
+自己資本比率 40% 以上・営業CF 黒字(10年)）と**株価上昇余地**（増配率・EPS成長率 年5%以上・ROE 8%以上）の
+**コア11条件**で篩い、**REIT / 投資法人 / インフラファンド**を除外する
+（投資目的: 配当 4.5% + 数年トータルで株価 +20% の両取り）。調べた会社は**法人番号で台帳に記録**して
 回を分けて積み増し（続きから再開可）、最後に **Claude のレビュー**を添える。
 
 > 投資助言ではなく**情報整理**。最終判断は自己責任。詳細は `SKILL.md` の免責を参照。
@@ -21,7 +23,7 @@ high-dividend-stock-screener/
 │   ├── hdss_lib.py              # 共通ライブラリ（パス解決/YAML/台帳/除外/判定）依存ゼロ
 │   ├── resolve_corp.py          # 証券コード→法人番号（EDINET コードリスト突合）
 │   ├── registry.py              # 調査済み台帳 status / filter / add / update
-│   └── judge.py                 # コア4条件の決定論的判定
+│   └── judge.py                 # コア11条件の決定論的判定
 ├── references/
 │   ├── screening_rules.md       # 判定軸の定義・除外ルール（進化対象）
 │   ├── site_structure.md        # 取得元サイトの構造メモ（進化対象）
@@ -46,7 +48,7 @@ high-dividend-stock-screener/
 SKILL=.claude/skills/ultron-high-dividend-stock-screener
 python3 "$SKILL/bin/registry.py" status                       # 台帳の累計
 python3 "$SKILL/bin/registry.py" filter --stdin               # 未調査だけ抽出（重複調査防止）
-python3 "$SKILL/bin/judge.py"     --file companies.json       # コア4条件で合否
+python3 "$SKILL/bin/judge.py"     --file companies.json       # コア11条件で合否
 python3 "$SKILL/bin/resolve_corp.py" 7203 8058                # 法人番号解決（初回は EDINET 自動DL）
 python3 "$SKILL/bin/registry.py" add --stdin                  # 台帳へ追記（合否に関わらず）
 python3 "$SKILL/bin/registry.py" update --stdin               # 既存行を置換（再検証・mode=new の反映）
