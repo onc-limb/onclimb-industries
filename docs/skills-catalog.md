@@ -2,6 +2,14 @@
 
 `.claude/skills/` 配下の全スキルの詳細一覧。各スキルの「どんな指示で起動するか」「何を入力に何ができるか」をまとめる。
 
+## Claude Code / Codex での利用
+
+スキルの正本は `.claude/skills/` である。Claude Code と Codex は同じ `SKILL.md` を
+直接検出するため、内容の複製や実行時の変換は発生しない。
+
+スキルを追加・変更するときは `.claude/skills/` のみを編集する。Codex が起動済みの場合は、
+新規セッションを開始してスキル一覧を再読み込みする。
+
 - 分類（プレフィックス）の意味と命名規約は [`.claude/skills/README.md`](../.claude/skills/README.md) を参照。
 - 各分類の共通ルールは [`personas/`](../personas/) を参照。
 - ほぼ全スキルが**明示的な依頼でのみ起動**する（自動起動しない）。例外は指示文の解釈で自然に立ち上がるもの（jarvis-worklog、jarvis-todo-management の突き合わせ等）。
