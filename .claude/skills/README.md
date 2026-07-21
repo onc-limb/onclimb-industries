@@ -115,6 +115,10 @@
 
 ## 補足
 
+- **スキルの現場間流用**: 本ディレクトリのスキルを他リポジトリ / User スコープ
+  （`~/.claude/skills/`）へ配布・取込するスクリプトが [`../scripts/`](../scripts/) にある
+  （`export-skill.sh` / `import-skill.sh`。旧 my-best-practices/my-skills から移設）。
+
 - **モデル割り当て**: スキル・作業ごとの適正モデル（haiku/sonnet/opus/fable）は
   [`personas/model-selection.md`](../../personas/model-selection.md) に従う。定型・台帳系スキルは
   frontmatter `model: sonnet` でピン留め済み。判断・設計・発想系はセッションモデルを継承する。
