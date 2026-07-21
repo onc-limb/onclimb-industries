@@ -2,7 +2,7 @@
 
 実装・リファクタリング・コードレビューを担うスキル群の共通ルール。
 
-所属スキル: `arc-reactor-code-review` / `arc-reactor-test-scaffolder` / `arc-reactor-codebase-onboarding` / `arc-reactor-tech-debt-auditor` / `arc-reactor-external-access-mapper` / `arc-reactor-env-doctor` / `arc-reactor-release-readiness-checker` / `arc-reactor-slow-query-hunter` / `arc-reactor-infra-architecture-designer` / `arc-reactor-pr-splitter` / `arc-reactor-db-migration-safety-checker` / `arc-reactor-sequence-diagram-generator` / `arc-reactor-db-schema-designer` / `arc-reactor-api-designer`
+所属スキル: `arc-reactor-code-review` / `arc-reactor-architecture-review` / `arc-reactor-test-scaffolder` / `arc-reactor-codebase-onboarding` / `arc-reactor-tech-debt-auditor` / `arc-reactor-external-access-mapper` / `arc-reactor-env-doctor` / `arc-reactor-release-readiness-checker` / `arc-reactor-slow-query-hunter` / `arc-reactor-infra-architecture-designer` / `arc-reactor-pr-splitter` / `arc-reactor-db-migration-safety-checker` / `arc-reactor-sequence-diagram-generator` / `arc-reactor-db-schema-designer` / `arc-reactor-api-designer`
 
 ## 共通の役割
 

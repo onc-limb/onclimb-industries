@@ -72,6 +72,7 @@
 | `friday-procedure-doc-generator` | 共有ドキュメント系 |
 | `friday-skillset-writer` | 共有ドキュメント系 |
 | `arc-reactor-code-review` | コーディング・レビュー系 |
+| `arc-reactor-architecture-review` | コーディング・レビュー系 |
 | `arc-reactor-test-scaffolder` | コーディング・レビュー系 |
 | `arc-reactor-codebase-onboarding` | コーディング・レビュー系 |
 | `arc-reactor-tech-debt-auditor` | コーディング・レビュー系 |
