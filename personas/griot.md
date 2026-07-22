@@ -1,16 +1,27 @@
 # griot — 練習・コーチング系
 
-**自分が話して伝える力を鍛える**ための練習相手・コーチングに特化したスキル群の共通ルール。
-報告説明・プレゼンテーション・英会話など、発話・伝達スキルの個人練習を扱う。
+**自分の力を鍛える個人練習・コーチング**に特化したスキル群の共通ルール。
+報告説明・プレゼンテーション・英会話などの発話・伝達スキルの練習と、
+設計・モデリングなど思考スキルのトレーニング（課題の供給）を扱う。
 聞き手・読み手は自分自身（上達のための練習であって、他者への配布物を作るのではない）。
 
-所属スキル: `griot-explain-prep` / `griot-explain-coach` / `griot-explain-english`
+所属スキル: `griot-explain-prep` / `griot-explain-coach` / `griot-explain-english` / `griot-modeling-domain-challenge` / `griot-modeling-drill`
+
+## 発話・伝達の練習（explain 系）
 
 説明練習は 4 ステップのパイプラインで回す（Step 2 はユーザー自身の発話）:
 `griot-explain-prep`（Step 1: 壁打ちで言語化 → ノート + 1 枚 HTML 資料）→ 資料を見ながら
 口頭説明・録音（Step 2）→ `griot-explain-coach`（Step 3: 文字起こしをペルソナ視点で添削・
 指摘台帳に蓄積・定期の苦手分析）→ `griot-explain-english`（Step 4: 英語資料 + 音読スクリプト。
 英語学習を兼ねる派生ステップ）。
+
+## 思考トレーニング（題材提供型: modeling 系）
+
+設計・モデリングのトレーニングは「課題の供給」と「思考・記録」を分業する:
+`griot-modeling-domain-challenge`（月 1 の大きなドメイン課題）/ `griot-modeling-drill`
+（毎日の小課題）が題材を出し、考えるのはユーザー自身、気づき・教訓の記録と壁打ちは
+`jarvis-modeling-notes` が担う。**題材提供型スキルは正解・模範解答・推奨設計を出さない**
+（課題に正解は無い。本人の思考の過程を引き出すことが目的で、答えを渡すと練習にならない）。
 
 ## 共通の役割
 

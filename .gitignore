@@ -67,6 +67,9 @@
 # doc-planner: ドキュメント企画書 doc brief（クライアント名・案件情報を含みうるため追跡しない）
 /doc-briefs/
 
+# modeling-notes: モデリング思考のノート台帳（個人の思考の記録・案件由来の文脈を含みうるため追跡しない）
+/modeling-notes/
+
 # explain-practice: 説明練習のノート・資料・文字起こし・添削記録（業務情報を含みうるため追跡しない）
 /explain-practice-data/
 
