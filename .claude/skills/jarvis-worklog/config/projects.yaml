@@ -9,6 +9,8 @@
 #   id         : 出力ディレクトリ名（英数字・ハイフン推奨。顧客名は避けマスキング前提）
 #   path_globs : cwd がこのいずれかと完全一致、またはディレクトリ境界付きで前方一致したら確定（最優先）
 #                （単純な部分一致はしない: /path/gcp-sandbox は /path/gcp-sand に一致しない）
+#                複数プロジェクトに一致する場合は最長の glob が勝つ（リポジトリルートを glob に持つ
+#                プロジェクトがあっても、より深いパスを持つサブプロジェクトの定義が優先される）
 #   repos      : git リポジトリ名がこのいずれかと一致したら確定
 #   keywords   : 本文にこの語が含まれれば候補（fallback の手がかり。LLM へのヒントにも使う）
 #   description: （任意）プロジェクトの一言説明。LLM 判定の精度を上げるヒントになる
@@ -85,6 +87,27 @@ projects:
       - /Users/satoshi-onga/Documents/skills
     repos: []
     keywords: []
+
+  # iron-legion の自律実行ワークフロー。LLM サンドボックスは OS の一時ディレクトリで動くため
+  # そのパスを cwd で拾う（マシン固有のパスだが記録済み cwd 文字列の振り分けが目的なのでこれでよい）
+  - id: extremis
+    path_globs:
+      - /private/var/folders/3s/f4szhq014rlbdfng_m5qhgrc0000gn/T/extremis-llm-sandbox
+      - /Users/satoshi-onga/Documents/onclimb-industries/projects/iron-legion/extremis
+    repos:
+      - extremis-llm-sandbox
+    keywords:
+      - extremis
+    description: iron-legion の自己改善エンジニアリングループ（issue を渡すと実装→検証→PR まで自律実行）
+
+  - id: veronica
+    path_globs:
+      - /private/var/folders/3s/f4szhq014rlbdfng_m5qhgrc0000gn/T/veronica-llm-sandbox
+      - /Users/satoshi-onga/Documents/onclimb-industries/projects/iron-legion/veronica
+    repos: []
+    keywords:
+      - veronica
+    description: iron-legion のマネジメント側ディスカバリーループ（観点カタログで必要事項を洗い出し issue 化）
 
   # --- 例: SES 参画先（顧客名は出さず汎用 id にする）-----------------
   # - id: client-a

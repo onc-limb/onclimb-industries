@@ -321,11 +321,20 @@ class Classifier:
         ヒットすれば (project_id, reason)、なければ None を返す。"""
         cwd = cwd or ""
         # ① cwd パス一致（最優先）。完全一致かディレクトリ境界付き前方一致のみ
-        # （単純な部分一致は /path/gcp-sandbox が /path/gcp-sand に誤爆するため使わない）
+        # （単純な部分一致は /path/gcp-sandbox が /path/gcp-sand に誤爆するため使わない）。
+        # 複数プロジェクトに一致する場合は最長の path_glob を優先する（定義順に依存させない。
+        # リポジトリルートを持つプロジェクトが projects/ 配下のサブプロジェクトを先取りしないため）。
+        best = None  # (glob長, project_id, glob)
         for p in self.projects:
             for g in (p.get("path_globs") or []):
-                if g and (cwd == g.rstrip("/") or cwd.startswith(g.rstrip("/") + "/")):
-                    return p["id"], "cwd:%s" % g
+                if not g:
+                    continue
+                base = g.rstrip("/")
+                if cwd == base or cwd.startswith(base + "/"):
+                    if best is None or len(base) > best[0]:
+                        best = (len(base), p["id"], g)
+        if best:
+            return best[1], "cwd:%s" % best[2]
         # ② git リポジトリ名
         repo = git_repo_name(cwd) or (os.path.basename(cwd) if cwd else None)
         if repo:
