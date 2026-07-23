@@ -16,11 +16,19 @@
   - 元ログにない内容を捏造しない。不明点は「記録なし」と明示
   - 報告書としての体裁づくりより、情報の網羅・粒度・正確さを優先する
 
+高速化のための挙動:
+  - 差分スキップ: 既存 digest が分類済みログ（classified/<pid>/<date>.jsonl）より新しければ
+    生成をスキップする（classify 側も内容不変ならファイルを触らないため、この比較が機能する）。
+    強制再生成は --force。
+  - 2 形式統合: project と tech の両方が対象のときは 1 回の claude 呼び出しで両形式を
+    出力させ、区切り行で分割して保存する（呼び出し回数が半分になる）。
+
 使い方:
   bin/summarize.py                         # 全プロジェクト×全日付（classified 全体）
   bin/summarize.py 2026-06-22              # 指定日の全プロジェクト
   bin/summarize.py 2026-06-22 onclimb-industries       # 指定日・指定プロジェクト
   bin/summarize.py --formats project 2026-06-22
+  bin/summarize.py --force 2026-06-22      # 差分スキップを無効化して再生成
   bin/summarize.py --dry-run ...           # claude を呼ばずプロンプトだけ生成
 
 claude CLI が見つからない/失敗した場合は、合成プロンプトを digests/<type>/<...>.prompt.txt
@@ -37,6 +45,10 @@ import worklog_lib as W  # noqa: E402
 
 FORMATS = ["project", "tech"]
 OUTPUT_SUBDIR = "digests"  # 「整理された情報」の出力先（最終報告書ではない）
+
+# 2 形式統合出力の区切り行。この行より前が project、後が tech。
+# ログ本文に偶然現れない程度に特殊な文字列にしてある。
+FORMAT_DELIM = "<<<WORKLOG-FORMAT:tech>>>"
 MAX_LOG_CHARS = 180000  # 1 出力あたりのログ投入上限（コンテキスト保護）
 ENTRY_SEP = "\n\n"  # 1 エントリ間の区切り
 
@@ -74,8 +86,7 @@ BASE_INSTRUCTION = """\
 7. テンプレ内に表・ステータスラベル（[完了] 等）・サブ見出し（### …）・「状況/結論/根拠」等の小構造が指定されている場合は、その書式に従う。該当する事実が無い項目・セクションは「記録なし」と明記し、見出し自体は省略しない。
 8. 時間帯・工数は、作業ログ各行のタイムスタンプ（[HH:MM:SS]）から読み取れる範囲で記載する（無理に推定しない）。
 {segment_note}
-# 出力フォーマット（この構成・見出しで書く）
-{template}
+{output_spec}
 
 # 対象メタ情報
 - プロジェクト: {project}
@@ -85,14 +96,35 @@ BASE_INSTRUCTION = """\
 {log}
 """
 
+# 出力フォーマット指定。1 形式のみのときは従来どおりテンプレを 1 つ渡す。
+SINGLE_OUTPUT_SPEC = """\
+# 出力フォーマット（この構成・見出しで書く）
+{template}"""
+
+# 2 形式が対象のときは 1 回の呼び出しで両方を出力させる（呼び出し回数の半減が目的。
+# 入力ログが支配的で、同じログを 2 回読ませるのが無駄なため）。区切り行で分割保存する。
+MERGED_OUTPUT_SPEC = """\
+# 出力フォーマット（2 形式を 1 回で出力する）
+同じ作業ログから「プロジェクト視点」と「技術者視点」の 2 つの整理情報を続けて出力する。
+1. まず下記［プロジェクト視点テンプレ］の構成・見出しでプロジェクト視点の整理情報を書く。
+2. 次に、区切り行として {delim} だけの行を 1 行出力する（前後に説明・空白・コードフェンスを付けない）。
+3. 続けて下記［技術者視点テンプレ］の構成・見出しで技術者視点の整理情報を書く。
+両形式とも上の厳守事項に従う。同じ事実でも両方の観点で必要なら双方に書く（片方に書いたからと省略しない）。
+
+［プロジェクト視点テンプレ］
+{template_project}
+
+［技術者視点テンプレ］
+{template_tech}"""
+
 # 時間帯分割時（セグメント 2 個以上）にのみ厳守事項へ追記する注意書き。
 # 各セグメントの出力は「## 【時間帯 i/n】」見出しの下に連結されるため、
 # テンプレを丸ごと繰り返すと H1 や TL;DR が N 回並んで階層が壊れる。
 SEGMENT_NOTE = """\
 9. この作業ログは長いため時間帯で分割されており、あなたが整理するのはその一部です。
    出力は他の時間帯の整理と「## 【時間帯 i/n】」見出しの下に連結されるため、
-   H1 見出し（# …）とテンプレ冒頭の TL;DR・成果サマリ（結論層）のセクションは出力せず、
-   それ以降の ## 見出しから書き始める。"""
+   （2 形式出力の場合は各形式とも）H1 見出し（# …）とテンプレ冒頭の結論層
+   （TL;DR・成果サマリ）のセクションは出力せず、それ以降の ## 見出しから書き始める。"""
 
 # 時間帯分割ファイルの後処理: band（時間帯セクション）間の重複・矛盾を検知して
 # digest 冒頭に「突き合わせリスト」を出す。並行セッションが別 band に分かれると、
@@ -123,13 +155,33 @@ def reconcile_bands(project, date, band_blocks):
     返り値は digest 冒頭に挿すセクション文字列（失敗時はその旨の注記）。"""
     digest_text = cap_text("\n\n".join(band_blocks))
     prompt = RECON_INSTRUCTION.format(project=project, date=date, digest=digest_text)
-    ok, result = W.run_claude(prompt, model="sonnet")
+    # 重複・矛盾の抽出は軽い仕事なので現行 Haiku で十分（digest 本文の生成は Sonnet のまま）
+    ok, result = W.run_claude(prompt, model="haiku")
     header = "## 【時間帯間の重複・矛盾（jarvis-record での突き合わせ用）】"
     if ok:
         body = result.strip() or "- なし"
         return "%s\n\n%s" % (header, body)
     return ("%s\n\n- （自動検知に失敗: %s。jarvis-record 側で時間帯セクションを"
             "突き合わせること）" % (header, result))
+
+
+def digest_is_fresh(out_path, src_path):
+    """digest が分類済みログより新しければ True（＝再生成不要）。
+    classify が内容不変のファイルを触らない（mtime 保持）ことを前提にした差分スキップ。"""
+    try:
+        return os.path.getmtime(out_path) >= os.path.getmtime(src_path)
+    except OSError:
+        return False
+
+
+def split_merged_output(text):
+    """2 形式統合出力を区切り行で (project, tech) に分割する。区切りが無ければ None。"""
+    lines = text.splitlines()
+    for i, ln in enumerate(lines):
+        # 稀にモデルが区切り行をバッククォートで囲むことがあるため許容する
+        if ln.strip().strip("`") == FORMAT_DELIM:
+            return "\n".join(lines[:i]).strip(), "\n".join(lines[i + 1:]).strip()
+    return None
 
 
 def load_template(name):
@@ -246,6 +298,7 @@ def run_claude_many(prompts):
 def parse_args(argv):
     formats = list(FORMATS)
     dry = False
+    force = False
     pos = []
     i = 0
     while i < len(argv):
@@ -258,17 +311,21 @@ def parse_args(argv):
             dry = True
             i += 1
             continue
+        if a == "--force":
+            force = True
+            i += 1
+            continue
         pos.append(a)
         i += 1
     date = pos[0] if len(pos) > 0 else None
     project = pos[1] if len(pos) > 1 else None
-    return date, project, formats, dry
+    return date, project, formats, dry, force
 
 
 def main():
     home = W.worklog_home()
     cls_dir = os.path.join(home, "classified")
-    date, project, formats, dry = parse_args(sys.argv[1:])
+    date, project, formats, dry, force = parse_args(sys.argv[1:])
 
     # 対象 (project_id, date, path) を列挙
     targets = []
@@ -287,50 +344,71 @@ def main():
 
     templates = {fmt: load_template(fmt) for fmt in formats}
 
-    # 各出力ファイルを 1 つ以上のセグメント（時間帯）に分けてジョブ化する。
-    # 上限以下なら 1 セグメント、超過したら split_to_fit で文字数分割する。
-    jobs = []  # {out_path, label, n, units:[(span, prompt), ...]}
+    # (project_id, date) を 1 ジョブとし、必要な形式だけを対象にする。
+    # 両形式が対象なら 1 回の claude 呼び出しで両方出力させる（MERGED_OUTPUT_SPEC）。
+    # 各ジョブは 1 つ以上のセグメント（時間帯）を持つ。上限以下なら 1 セグメント、
+    # 超過したら split_to_fit で文字数分割する。
+    jobs = []  # {formats, out_paths, label, pid, date, n, units:[(span, prompt), ...]}
+    skipped = 0
     for pid, d, path in targets:
+        out_paths = {}
+        for fmt in formats:
+            out_dir = os.path.join(home, OUTPUT_SUBDIR, fmt)
+            os.makedirs(out_dir, exist_ok=True)
+            out_paths[fmt] = os.path.join(out_dir, "%s_%s.md" % (pid, d))
+        # 差分スキップ: digest が分類済みログより新しい形式は生成しない
+        stale = [f for f in formats if force or not digest_is_fresh(out_paths[f], path)]
+        if not stale:
+            skipped += 1
+            continue
         entries = read_entries(path)
         chunks = split_to_fit(entries)
         if not chunks or not any(txt.strip() for _, txt in chunks):
             continue
         disp_pid = "未分類" if pid == "_unclassified" else pid
         n = len(chunks)
-        for fmt in formats:
-            out_dir = os.path.join(home, OUTPUT_SUBDIR, fmt)
-            os.makedirs(out_dir, exist_ok=True)
-            out_path = os.path.join(out_dir, "%s_%s.md" % (pid, d))
-            # テンプレ H1 のプレースホルダを実値へ（{一般化した…} 等 LLM 向けの穴は残す）
-            tmpl = templates[fmt].replace("{project}", disp_pid).replace("{date}", d)
-            units = []
-            for idx, (chunk_entries, text) in enumerate(chunks, start=1):
-                if n > 1:
-                    lo, hi = chunk_time_range(chunk_entries)
-                    span = "%s–%s" % (lo or "??", hi or "??")
-                    log_for_prompt = (
-                        "（この作業ログは長いため時間帯 %d/%d: %s の部分です）\n\n%s"
-                        % (idx, n, span, text)
-                    )
-                else:
-                    span = None
-                    log_for_prompt = text
-                prompt = BASE_INSTRUCTION.format(
-                    template=tmpl, project=disp_pid, date=d, log=log_for_prompt,
-                    segment_note=(SEGMENT_NOTE if n > 1 else ""),
+        # テンプレ H1 のプレースホルダを実値へ（{一般化した…} 等 LLM 向けの穴は残す）
+        tmpl = {f: templates[f].replace("{project}", disp_pid).replace("{date}", d)
+                for f in stale}
+        if len(stale) > 1:
+            spec = MERGED_OUTPUT_SPEC.format(
+                delim=FORMAT_DELIM,
+                template_project=tmpl["project"], template_tech=tmpl["tech"],
+            )
+        else:
+            spec = SINGLE_OUTPUT_SPEC.format(template=tmpl[stale[0]])
+        units = []
+        for idx, (chunk_entries, text) in enumerate(chunks, start=1):
+            if n > 1:
+                lo, hi = chunk_time_range(chunk_entries)
+                span = "%s–%s" % (lo or "??", hi or "??")
+                log_for_prompt = (
+                    "（この作業ログは長いため時間帯 %d/%d: %s の部分です）\n\n%s"
+                    % (idx, n, span, text)
                 )
-                units.append((span, prompt))
-            jobs.append({
-                "out_path": out_path, "label": "%s/%s_%s" % (fmt, pid, d),
-                "pid": disp_pid, "date": d,
-                "n": n, "units": units,
-            })
+            else:
+                span = None
+                log_for_prompt = text
+            prompt = BASE_INSTRUCTION.format(
+                output_spec=spec, project=disp_pid, date=d, log=log_for_prompt,
+                segment_note=(SEGMENT_NOTE if n > 1 else ""),
+            )
+            units.append((span, prompt))
+        jobs.append({
+            "formats": stale, "out_paths": out_paths,
+            "label": "%s/%s_%s" % ("+".join(stale), pid, d),
+            "pid": disp_pid, "date": d,
+            "n": n, "units": units,
+        })
+
+    if skipped:
+        sys.stderr.write("[summarize] スキップ=%d（digest が最新。再生成は --force）\n" % skipped)
 
     generated, failed = 0, 0
 
     if dry:
         for job in jobs:
-            path = job["out_path"] + ".prompt.txt"
+            path = job["out_paths"][job["formats"][0]] + ".prompt.txt"
             if job["n"] == 1:
                 blob = job["units"][0][1]
             else:
@@ -343,7 +421,7 @@ def main():
                 f.write(blob)
             sys.stderr.write("[summarize] (dry) %s\n" % path)
             generated += 1
-        sys.stderr.write("[summarize] 生成=%d 失敗=%d\n" % (generated, failed))
+        sys.stderr.write("[summarize] 生成=%d 失敗=%d スキップ=%d\n" % (generated, failed, skipped))
         return
 
     # 全ジョブの全セグメントのプロンプトを平坦化し、まとめて並列生成する。
@@ -354,7 +432,7 @@ def main():
             flat.append(prompt)
 
     if not flat:
-        sys.stderr.write("[summarize] 対象なし\n")
+        sys.stderr.write("[summarize] 生成対象なし（スキップ=%d）\n" % skipped)
         return
 
     n_split = sum(1 for j in jobs if j["n"] > 1)
@@ -370,54 +448,86 @@ def main():
 
     for ji, job in enumerate(jobs):
         resmap = per_job.get(ji, {})
-        out_path = job["out_path"]
+        fmts = job["formats"]
         n = job["n"]
-        if n == 1:
-            ok, result = resmap.get(0, (False, "結果なし"))
-            if ok:
-                with open(out_path, "w", encoding="utf-8") as f:
-                    f.write(result + "\n")
+        merged = len(fmts) > 1
+        # 失敗時のプロンプト・生出力の保存先は先頭形式のパスを基準にする（内容は形式共通）
+        prompt_base = job["out_paths"][fmts[0]]
+
+        # セグメントごとの結果を fmt -> (ok, text_or_err) に正規化する。
+        # 統合出力は区切り行で分割し、分割できなければ生出力を保存して両形式とも失敗扱い。
+        unit_res = []
+        for ui, (span, prompt) in enumerate(job["units"]):
+            ok, result = resmap.get(ui, (False, "結果なし"))
+            if not ok:
+                unit_res.append({f: (False, result) for f in fmts})
+                continue
+            if not merged:
+                unit_res.append({fmts[0]: (True, result)})
+                continue
+            parts = split_merged_output(result)
+            if parts is None:
+                suffix = (".part%d" % (ui + 1)) if n > 1 else ""
+                raw_path = "%s.raw%s.txt" % (prompt_base, suffix)
+                with open(raw_path, "w", encoding="utf-8") as f:
+                    f.write(result)
+                err = "区切り行が無く 2 形式に分割できない（生出力を %s に保存）" % raw_path
+                unit_res.append({f: (False, err) for f in fmts})
+            else:
+                unit_res.append({"project": (True, parts[0]), "tech": (True, parts[1])})
+
+        for fmt in fmts:
+            out_path = job["out_paths"][fmt]
+            label = "%s/%s_%s" % (fmt, job["pid"], job["date"])
+            if n == 1:
+                ok, result = unit_res[0][fmt]
+                if ok:
+                    with open(out_path, "w", encoding="utf-8") as f:
+                        f.write(result + "\n")
+                    generated += 1
+                else:
+                    with open(prompt_base + ".prompt.txt", "w", encoding="utf-8") as f:
+                        f.write(job["units"][0][1])
+                    sys.stderr.write("[summarize] 失敗(%s): %s -> プロンプトを %s に保存\n"
+                                     % (label, result, prompt_base + ".prompt.txt"))
+                    failed += 1
+                continue
+
+            # 分割ファイル: 各セグメントを時間帯見出し付きで 1 ファイルに連結する
+            head = "（ログが長いため時間帯で %d 分割して整理）" % n
+            band_blocks = []
+            n_ok = 0
+            for ui, (span, prompt) in enumerate(job["units"]):
+                i = ui + 1
+                ok, result = unit_res[ui][fmt]
+                header = "---\n## 【時間帯 %d/%d: %s】" % (i, n, span or "")
+                if ok:
+                    band_blocks.append("%s\n\n%s" % (header, result))
+                    n_ok += 1
+                else:
+                    part_path = "%s.prompt.part%d.txt" % (prompt_base, i)
+                    with open(part_path, "w", encoding="utf-8") as f:
+                        f.write(prompt)
+                    band_blocks.append("%s\n\n（この時間帯の生成に失敗: %s。プロンプトを %s に保存）"
+                                       % (header, result, part_path))
+            # band 間の重複・矛盾リストを冒頭に挿す（2 セグメント以上成功した場合のみ意味がある）
+            blocks = [head]
+            if n_ok >= 2:
+                blocks.append(reconcile_bands(job["pid"], job["date"], band_blocks))
+            blocks.extend(band_blocks)
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write("\n\n".join(blocks) + "\n")
+            if n_ok == n:
                 generated += 1
             else:
-                with open(out_path + ".prompt.txt", "w", encoding="utf-8") as f:
-                    f.write(job["units"][0][1])
-                sys.stderr.write("[summarize] 失敗(%s): %s -> プロンプトを %s に保存\n"
-                                 % (job["label"], result, out_path + ".prompt.txt"))
                 failed += 1
-            continue
+                sys.stderr.write("[summarize] 一部失敗(%s): %d/%d セグメント成功\n"
+                                 % (label, n_ok, n))
 
-        # 分割ファイル: 各セグメントを時間帯見出し付きで 1 ファイルに連結する
-        head = "（ログが長いため時間帯で %d 分割して整理）" % n
-        band_blocks = []
-        n_ok = 0
-        for ui, (span, prompt) in enumerate(job["units"]):
-            i = ui + 1
-            ok, result = resmap.get(ui, (False, "結果なし"))
-            header = "---\n## 【時間帯 %d/%d: %s】" % (i, n, span or "")
-            if ok:
-                band_blocks.append("%s\n\n%s" % (header, result))
-                n_ok += 1
-            else:
-                part_path = "%s.prompt.part%d.txt" % (out_path, i)
-                with open(part_path, "w", encoding="utf-8") as f:
-                    f.write(prompt)
-                band_blocks.append("%s\n\n（この時間帯の生成に失敗: %s。プロンプトを %s に保存）"
-                                   % (header, result, part_path))
-        # band 間の重複・矛盾リストを冒頭に挿す（2 セグメント以上成功した場合のみ意味がある）
-        blocks = [head]
-        if n_ok >= 2:
-            blocks.append(reconcile_bands(job["pid"], job["date"], band_blocks))
-        blocks.extend(band_blocks)
-        with open(out_path, "w", encoding="utf-8") as f:
-            f.write("\n\n".join(blocks) + "\n")
-        if n_ok == n:
-            generated += 1
-        else:
-            failed += 1
-            sys.stderr.write("[summarize] 一部失敗(%s): %d/%d セグメント成功\n"
-                             % (job["label"], n_ok, n))
-
-    sys.stderr.write("[summarize] 生成=%d 失敗=%d\n" % (generated, failed))
+    sys.stderr.write("[summarize] 生成=%d 失敗=%d スキップ=%d\n" % (generated, failed, skipped))
+    # 夜間実行（nightly.sh）が「失敗した日を翌晩に再試行する」判定に使うため、失敗時は非 0 で終了する
+    if failed:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

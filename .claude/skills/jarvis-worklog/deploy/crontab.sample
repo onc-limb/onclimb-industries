@@ -8,6 +8,8 @@
 # 毎日 23:50 に収集（取りこぼし・アップデート起因の消失前に退避）
 50 23 * * * /bin/bash <SKILL>/bin/collect.sh >> /tmp/worklog-collect.log 2>&1
 
-# --- オプション: 分類・要約まで毎日自動化したい場合（claude CLI が必要）---
-# 完全無人で当日分を分類→3形式まで生成する。半自動運用で十分なら不要。
-# 0 0 * * * /bin/bash -lc 'D=$(date +\%F); python3 <SKILL>/bin/classify.py "$D"; python3 <SKILL>/bin/summarize.py "$D"' >> /tmp/worklog-summarize.log 2>&1
+# --- オプション: 夜間先回り実行（collect → classify → summarize。claude CLI が必要）---
+# raw が更新された日だけ処理し、失敗した日は翌晩に再試行する（詳細は bin/nightly.sh 冒頭）。
+# collect も内包するので、使う場合は上の collect 行を外してこちらだけにする。
+# claude CLI のパス（which claude）が cron の PATH に無い場合は PATH= を行頭に付ける。
+# 50 23 * * * PATH=$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin /bin/bash <SKILL>/bin/nightly.sh >> /tmp/worklog-nightly.log 2>&1

@@ -35,8 +35,9 @@ Claude Code での作業（会話＋ツール操作）を自動で記録し、**
 ├── README.md
 ├── bin/
 │   ├── collect.sh / collect_impl.py   # 生JSONL を raw/ へ収集・構造抽出・マスキング
-│   ├── classify.py                    # プロジェクト×日付に分類（①②決定論→③LLM/Sonnet→④keyword）
-│   ├── summarize.py                   # 2形式の整理情報を生成（claude -p / Sonnet）
+│   ├── classify.py                    # プロジェクト×日付に分類（①②決定論→③LLM/Haiku→④keyword）
+│   ├── summarize.py                   # 2形式の整理情報を生成（claude -p / Sonnet。2形式を1呼び出しで生成・差分スキップ）
+│   ├── nightly.sh                     # 夜間先回り実行（collect→classify→summarize を無人で）
 │   ├── archive.sh / archive_impl.py   # 整理済み生ログを月次 zip 退避
 │   └── worklog_lib.py                 # 共通ライブラリ（軽量YAMLパーサ含む・依存ゼロ）
 ├── config/
@@ -47,7 +48,8 @@ Claude Code での作業（会話＋ツール操作）を自動で記録し、**
 └── deploy/                   # Hooks 設定サンプル + cron / launchd サンプル
     ├── settings.sample.json
     ├── crontab.sample
-    └── com.user.worklog.collect.plist
+    ├── com.user.worklog.collect.plist   # 収集のみ
+    └── com.user.worklog.nightly.plist   # 夜間先回り実行（収集を内包。collect 版と併用しない）
 ```
 
 **データ**（git 追跡しない＝`worklog-data/` をリポジトリ直下の `.gitignore` で除外）:
@@ -129,6 +131,13 @@ cp deploy/com.user.worklog.collect.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.user.worklog.collect.plist
 ```
 
+### 5. 夜間先回り実行に置き換える（さらに推奨）
+
+収集だけでなく分類・整理まで夜間に済ませておくと、日中の「まとめて」がほぼ即答になる。
+`deploy/com.user.worklog.nightly.plist` を **4 の collect 版の代わりに** ロードする
+（nightly は collect を内包するので併用しない）。詳細は plist 冒頭コメントと
+SKILL.md「夜間の先回り実行」を参照。
+
 ---
 
 ## 日々の運用
@@ -184,7 +193,7 @@ bash "$SKILL/bin/archive.sh" 2026-05           # 退避実行
   デスクトップ由来か（`source: desktop`）の判定にのみ使う（`cliSessionId` の照合。タイトル等は使わない）。
 - 整理は `claude -p`（ヘッドレス・`--model sonnet`＝現行 Sonnet に追従）を使う。`claude` が無い/失敗時は合成プロンプトを
   `digests/<type>/<...>.prompt.txt` に保存するので、後から手動生成できる。
-- 分類の本文判定は `claude -p`（Sonnet）を使う。`①cwd→②git リポジトリ名`で確定しなかった
+- 分類の本文判定は `claude -p`（Haiku）を使う。`①cwd→②git リポジトリ名`で確定しなかった
   セッションだけ LLM に渡し、確信が低ければ「未分類」に倒す。`claude` 不在/失敗/`--no-llm` 時は
   本文キーワード部分一致に fall back する。
 

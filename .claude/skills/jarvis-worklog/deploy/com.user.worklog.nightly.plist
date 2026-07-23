@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  worklog 夜間先回り実行 (macOS launchd): collect → classify → summarize
+  日中の「まとめて」を suggest_projects の確認と ToDo 突き合わせだけにするための自動化。
+  ※ collect も内包するので、com.user.worklog.collect.plist とは併用しない
+    （両方ロードすると同時刻に collect が二重実行される）。
+
+  使い方:
+    1) <SKILL> をスキルディレクトリの実パスに置換
+       例: /Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/jarvis-worklog
+    2) claude CLI のあるディレクトリが下の PATH に含まれるか確認する
+       （which claude。例: /Users/satoshi-onga/.local/bin）
+    3) ~/Library/LaunchAgents/ にコピー
+       cp deploy/com.user.worklog.nightly.plist ~/Library/LaunchAgents/
+    4) ロード
+       launchctl load ~/Library/LaunchAgents/com.user.worklog.nightly.plist
+    5) 解除する場合
+       launchctl unload ~/Library/LaunchAgents/com.user.worklog.nightly.plist
+  毎日 23:50 に nightly.sh を実行する。
+  データは既定でリポジトリ直下の worklog-data/ へ。変えたい場合は下の
+  EnvironmentVariables に WORKLOG_DATA を追加する。
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.worklog.nightly</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string><SKILL>/bin/nightly.sh</string>
+    </array>
+
+    <!-- launchd の既定 PATH には claude CLI が入っていないため明示する -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/satoshi-onga/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>23</integer>
+        <key>Minute</key>
+        <integer>50</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/worklog-nightly.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/worklog-nightly.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
