@@ -1,6 +1,6 @@
 ---
 name: jarvis-todo-management
-description: プロジェクト別タスク台帳（todo-data/todos.json）を単一の真実として運用するイベント駆動の ToDo 管理スキル(jarvis 系)。時間駆動のチェックインは行わず、(1)登録と 30〜60 分単位への分割、(2)作業の区切りでの台帳突き合わせ（該当 ToDo が無ければ source 付きで自動記載 + 一言通知）、(3)worklog digest・giziroku 議事録・調査/壁打ちからの ToDo 収穫（inbox 行き）、(4)オンデマンド棚卸し（inbox 消化・stale 検知・分割提案・着手順提案）、(5)Google Tasks への push 同期（プロジェクト = 1 リスト、自作 MCP サーバー経由）を担う。「ToDo 追加」「タスク登録して」「このタスク分割して」「ToDo 整理して」「棚卸しして」「これどの ToDo の作業だっけ」「議事録から ToDo 拾って」「Google Tasks に同期して」等で起動。事実の記録（完了・作業実績の追記)は自動 + 毎回一言通知、意図の決定（廃棄・優先度・分割確定・inbox 昇格）は提案してユーザーが確定する。自己進化パイプラインを備え、分割粒度・突き合わせマッチング・収穫の抽出ルールが使用ログから磨かれる。読み手は自分自身の一次記録であり、他者向け報告の清書は friday 系の責務。
+description: プロジェクト別タスク台帳（todo-data/todos.json）を単一の真実として運用するイベント駆動の ToDo 管理スキル(jarvis 系)。時間駆動のチェックインは行わず、(1)登録と 30〜60 分単位への分割、(2)作業の区切りでの台帳突き合わせ（該当 ToDo が無ければ source 付きで自動記載 + 一言通知）、(3)worklog digest・giziroku 議事録・調査/壁打ち・Google Tasks backlog リストからの ToDo 収穫（inbox 行き）、(4)オンデマンド棚卸し（inbox 消化・stale 検知・分割提案・着手順提案）、(5)Google Tasks への push 同期（プロジェクト = 1 リスト、自作 MCP サーバー経由）を担う。「ToDo 追加」「タスク登録して」「このタスク分割して」「ToDo 整理して」「棚卸しして」「これどの ToDo の作業だっけ」「議事録から ToDo 拾って」「Google Tasks に同期して」「backlog 取り込んで」等で起動。事実の記録（完了・作業実績の追記)は自動 + 毎回一言通知、意図の決定（廃棄・優先度・分割確定・inbox 昇格）は提案してユーザーが確定する。自己進化パイプラインを備え、分割粒度・突き合わせマッチング・収穫の抽出ルールが使用ログから磨かれる。読み手は自分自身の一次記録であり、他者向け報告の清書は friday 系の責務。
 model: sonnet
 metadata:
   type: skill
@@ -68,7 +68,7 @@ todo-data/
 | **突き合わせ** | 作業の区切り (CLAUDE.md ルールから自動) /「これどの ToDo の作業だっけ」 | フロー C |
 | **棚卸し** | 「ToDo 整理して」「棚卸しして」「いま何が残ってる?」 | フロー D |
 | **同期** | 「Google Tasks に同期して」/ 棚卸しの最後 | フロー E |
-| **収穫** | worklog / giziroku の SKILL.md 末尾ステップから /「議事録から ToDo 拾って」 | フロー F |
+| **収穫** | worklog / giziroku の SKILL.md 末尾ステップから /「議事録から ToDo 拾って」/「backlog 取り込んで」 | フロー F |
 
 定時チェックインは行わない (時間駆動は廃止。すべてイベント駆動・オンデマンド)。
 
@@ -165,6 +165,7 @@ python3 scripts/pipeline.py --skill-root <このスキルのルート> log-end \
 | worklog digest の「次にやること」「判断待ち」 | `--source-type worklog --source-ref <digest パス>` で自動追記 + 一言通知 |
 | giziroku の TODO (自分担当分のみ) | 候補を提示し確認のうえ `--source-type giziroku --source-ref <議事録パス>`。**他人の TODO は入れない** |
 | 調査・壁打ちの結論 | 会話の区切りで「これ ToDo にしますか」と候補提示 → 採用分を `--source-type research` |
+| Google Tasks の `backlog` リスト (スマホ等からのキャプチャ用インボックス) | 「backlog 取り込んで」で起動。`list_tasks` で未完了を取得し、`--source-type google-tasks --source-ref "google-tasks:backlog/<task_id>"` で inbox に自動追記 + 一言通知。source-ref が一致する取り込み済みタスクはスキップする。取り込みに成功した分は Google 側 backlog を `update_task` で completed にする (台帳が真実になったため。削除はしない) |
 
 ---
 

@@ -25,7 +25,7 @@ SCHEMA_VERSION = 2
 # v1 -> v2 is additive (optional per-task "priority" object), so v1 ledgers load as-is.
 SUPPORTED_SCHEMA_VERSIONS = (1, 2)
 STATUSES = ("inbox", "todo", "in_progress", "done", "dropped")
-SOURCE_TYPES = ("user", "session", "worklog", "giziroku", "research")
+SOURCE_TYPES = ("user", "session", "worklog", "giziroku", "research", "google-tasks")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 

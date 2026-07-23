@@ -61,5 +61,8 @@ claude mcp add google-tasks -- \
 - 対話的な OAuth フローは `auth.py` に分離してある。`server.py` は stdio トランスポートを
   汚さないよう、保存済みトークンの読み込み・リフレッシュしかしない
   （トークンが無いときはツール呼び出しがエラーになり、`auth.py` の実行を促す）。
-- 同期の真実は常に内部台帳（`todo-data/todos.json`）。このサーバーは書き込みミラー用で、
-  Google 側の変更を台帳へ取り込む機能は持たない（双方向化は将来の拡張）。
+- 同期の真実は常に内部台帳（`todo-data/todos.json`）。このサーバーは書き込みミラー用。
+  唯一の逆方向は `backlog` リスト（スマホ等からのキャプチャ用インボックス）の取り込みで、
+  スキル側フロー（jarvis-todo-management フロー F）が `list_tasks` で読んで台帳の inbox に
+  収穫し、取り込み済みタスクを completed にする。それ以外の Google 側の変更は台帳へ
+  取り込まない。
