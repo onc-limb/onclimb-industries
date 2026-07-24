@@ -54,6 +54,7 @@ Claude Code のスキル群を管理する個人用リポジトリです。
 │   └── skills-catalog.md   # 全スキルの詳細一覧
 ├── ideas/            # スキルのアイデア・skill-feedback（改善インボックス）
 ├── mcp-servers/      # 自作 MCP サーバー（Google Tasks 同期など）
+├── sanctum/          # ローカルメモ Web アプリ（Obsidian 風・Rust/topcoat 製。sanctum/README.md 参照）
 ├── projects/         # 実プロジェクトの git リポジトリを置く作業場（git 管理外）
 └── *-data/, giziroku/, knowledge-base/, report-*/ など
                       # 各スキルのデータ・成果物置き場（git 管理外）

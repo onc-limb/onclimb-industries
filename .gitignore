@@ -95,3 +95,10 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# sanctum: ローカルメモ Web アプリのビルド成果物（Rust の target ディレクトリ）
+/sanctum/target/
+
+# sanctum: デイリーノート・テンプレート・貼り付け画像などのメモ実データ
+# （MTG メモ等に案件の機密を含みうるため追跡しない）
+/memo-data/

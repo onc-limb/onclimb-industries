@@ -1,0 +1,3 @@
+# topcoat 0.4 が rustc 1.95 以上を要求するためピン留め（グローバルの default は変えない）
+[toolchain]
+channel = "1.95"
