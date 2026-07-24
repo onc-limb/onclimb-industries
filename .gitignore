@@ -102,3 +102,6 @@ __pycache__/
 # sanctum: デイリーノート・テンプレート・貼り付け画像などのメモ実データ
 # （MTG メモ等に案件の機密を含みうるため追跡しない）
 /memo-data/
+
+# sanctum: 起動時設定（memo-data の場所などローカル環境依存のため追跡しない。雛形は sanctum.json.example）
+/sanctum/sanctum.json

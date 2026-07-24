@@ -1,7 +1,5 @@
 //! ページ定義: レイアウト（サイドバー付き外枠）・ホーム・ノート閲覧・編集・検索・デイリーノート。
 
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use topcoat::{
     context::Cx,
     router::{layout, page, query_params, Slot},
@@ -10,22 +8,21 @@ use topcoat::{
 };
 
 use crate::api::template_names;
-use crate::index;
 use crate::markdown::{escape_attr, escape_html, render_full, url_encode, TocEntry};
 use crate::vault::{self, mtime_ms, DirNode};
+use crate::{config, index};
 
 const CSS: &str = include_str!("../assets/style.css");
 const JS: &str = include_str!("../assets/app.js");
 
-/// デイリーノートの置き場（vault 相対）。
-pub fn daily_dir() -> String {
-    std::env::var("SANCTUM_DAILY_DIR").unwrap_or_else(|_| "memo-data/daily".to_string())
-}
-
 #[layout("/")]
 async fn chrome(slot: Slot<'_>) -> Result {
     let snap = index::snapshot();
-    let tree_html: String = snap.forest.iter().map(tree_root_html).collect();
+    let tree_html: String = snap
+        .forest
+        .iter()
+        .map(|node| tree_root_html(node, node.name != config::memo_data()))
+        .collect();
     view! {
         <!DOCTYPE html>
         <html lang="ja">
@@ -72,32 +69,15 @@ async fn chrome(slot: Slot<'_>) -> Result {
 
 #[page("/")]
 async fn home() -> Result {
-    let v = vault::instance();
-    let snap = index::snapshot();
-    let recents = snap.recent(15);
-    let total = snap.notes.len();
-    view! {
-        <div class="content-inner">
-            <h1>"Sanctum"</h1>
-            <p class="muted">(format!("vault: {} ／ ノート {} 件", v.root().display(), total))</p>
-            <h2>"最近更新したノート"</h2>
-            <ul class="note-list">
-                for (rel, mtime) in recents {
-                    <li>
-                        <a href=(format!("/note?path={}", url_encode(&rel)))>(rel.clone())</a>
-                        <span class="meta">(ago_ms(mtime))</span>
-                    </li>
-                }
-            </ul>
-        </div>
-    }
+    // ファイルを選択していない状態では何も表示しない
+    view! { <div class="content-inner"></div> }
 }
 
 /// ブラウザのローカル日付で今日のデイリーノートの編集画面へ飛ばす。
 /// （サーバー側で日付を決めるとタイムゾーン依存になるためクライアントで解決する）
 #[page("/today")]
 async fn today() -> Result {
-    let dir = daily_dir().replace(['\\', '\''], "");
+    let dir = config::daily_dir().replace(['\\', '\''], "");
     let script = format!(
         "(function(){{var d=new Date();function p(n){{return(n<10?'0':'')+n}}\
          var name=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());\
@@ -205,7 +185,7 @@ async fn note_shell(rel: String, force_insert: bool) -> Result {
                 data-dir=(note_dir)
                 data-mtime=(mtime)
                 data-new=(new_flag)
-                data-daily-dir=(daily_dir())
+                data-daily-dir=(config::daily_dir())
                 data-start-mode=(start_mode)
                 spellcheck="false">(content)</textarea>
             if !backlinks.is_empty() {
@@ -255,14 +235,21 @@ async fn search_page(cx: &Cx) -> Result {
     }
 }
 
-/// 表示フォルダ（設定した根）1 つ分のツリー HTML。削除ボタン付き。
-fn tree_root_html(node: &DirNode) -> String {
+/// 表示フォルダ（設定した根）1 つ分のツリー HTML。
+/// memo-data（removable = false）には削除ボタンを付けない。
+fn tree_root_html(node: &DirNode, removable: bool) -> String {
+    let remove_btn = if removable {
+        format!(
+            "<span class=\"root-remove\" data-root=\"{}\" title=\"ツリーから外す\">×</span>",
+            escape_attr(&node.name)
+        )
+    } else {
+        String::new()
+    };
     format!(
-        "<details open class=\"tree-root\"><summary>{}\
-         <span class=\"root-remove\" data-root=\"{}\" title=\"ツリーから外す\">×</span>\
-         </summary>{}</details>",
+        "<details open class=\"tree-root\"><summary>{}{}</summary>{}</details>",
         escape_html(&node.name),
-        escape_attr(&node.name),
+        remove_btn,
         tree_children_html(node, 1)
     )
 }
@@ -349,19 +336,5 @@ fn truncate_chars(s: &str, max: usize) -> String {
     } else {
         let t: String = s.chars().take(max).collect();
         format!("{t}…")
-    }
-}
-
-fn ago_ms(mtime_ms: u64) -> String {
-    let now_ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0);
-    let secs = now_ms.saturating_sub(mtime_ms) / 1000;
-    match secs {
-        0..=59 => "たった今".to_string(),
-        60..=3599 => format!("{} 分前", secs / 60),
-        3600..=86399 => format!("{} 時間前", secs / 3600),
-        _ => format!("{} 日前", secs / 86400),
     }
 }

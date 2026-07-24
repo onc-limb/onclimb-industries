@@ -17,7 +17,6 @@ const TTL: Duration = Duration::from_secs(2);
 
 pub struct NoteMeta {
     pub rel: String,
-    pub mtime: u64,
 }
 
 pub struct SearchHit {
@@ -97,18 +96,6 @@ impl Snapshot {
         }
         out.sort();
         out
-    }
-
-    /// 更新日時の新しい順に最大 limit 件。
-    pub fn recent(&self, limit: usize) -> Vec<(String, u64)> {
-        let mut all: Vec<(String, u64)> = self
-            .notes
-            .iter()
-            .map(|n| (n.rel.clone(), n.mtime))
-            .collect();
-        all.sort_by_key(|(_, mtime)| std::cmp::Reverse(*mtime));
-        all.truncate(limit);
-        all
     }
 
     pub fn note_paths(&self) -> Vec<String> {
@@ -211,7 +198,9 @@ pub fn mark_dirty() {
 
 fn rebuild(prev_links: HashMap<String, Vec<String>>, prev_mtimes: HashMap<String, u64>) -> State {
     let v = vault::instance();
-    let roots = config::tree_roots();
+    // memo-data は常に先頭に固定表示。追加分（config）はその後ろに続く。
+    let mut roots = vec![config::memo_data().to_string()];
+    roots.extend(config::tree_roots());
 
     // 表示フォレスト: 存在しない・ディレクトリでないパスも空ノードとして残す
     // （消えたことに気づけるように & 削除ボタンで外せるように）
@@ -267,7 +256,6 @@ fn rebuild(prev_links: HashMap<String, Vec<String>>, prev_mtimes: HashMap<String
         link_mtimes.insert(rel.to_string(), mtime);
         notes.push(NoteMeta {
             rel: rel.to_string(),
-            mtime,
         });
     };
 

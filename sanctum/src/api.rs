@@ -166,6 +166,14 @@ async fn roots(Json(req): Json<RootsReq>) -> Result<Json<RootsResp>> {
     let mut roots = config::tree_roots();
     if let Some(add) = req.add {
         let p = add.trim().trim_matches('/').to_string();
+        if p == config::memo_data() {
+            // memo-data は常時固定表示なので追加不要
+            return Ok(Json(RootsResp {
+                ok: true,
+                roots,
+                error: None,
+            }));
+        }
         let valid = p == "." || v.resolve(&p).map(|a| a.is_dir()).unwrap_or(false);
         if p.is_empty() || !valid {
             return Ok(Json(RootsResp {
@@ -237,11 +245,6 @@ const BUILTIN_TEMPLATES: [(&str, &str); 2] = [
     ),
 ];
 
-/// テンプレートの上書き置き場（vault 相対）。ここに <name>.md を置くと組み込みより優先される。
-pub fn templates_dir() -> String {
-    std::env::var("SANCTUM_TEMPLATES").unwrap_or_else(|_| "memo-data/templates".to_string())
-}
-
 /// 利用可能なテンプレート名の一覧（組み込み + テンプレートディレクトリの md）。
 pub fn template_names() -> Vec<String> {
     let mut names: Vec<String> = BUILTIN_TEMPLATES
@@ -249,7 +252,7 @@ pub fn template_names() -> Vec<String> {
         .map(|(n, _)| n.to_string())
         .collect();
     let v = vault::instance();
-    if let Some(dir) = v.resolve(&templates_dir()) {
+    if let Some(dir) = v.resolve(&config::templates_dir()) {
         if let Ok(entries) = std::fs::read_dir(dir) {
             for entry in entries.flatten() {
                 let name = entry.file_name().to_string_lossy().to_string();
@@ -269,7 +272,7 @@ pub fn template_content(name: &str) -> Option<String> {
         return None;
     }
     let v = vault::instance();
-    let custom = format!("{}/{name}.md", templates_dir());
+    let custom = format!("{}/{name}.md", config::templates_dir());
     if let Some(content) = v.read_note(&custom) {
         return Some(content);
     }

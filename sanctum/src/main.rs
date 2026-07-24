@@ -23,6 +23,8 @@ fn main() {
     let v = vault::Vault::from_env();
     println!("Sanctum vault: {}", v.root().display());
     vault::init(v);
+    config::init_startup();
+    println!("Sanctum memo-data: {}", config::memo_data());
 
     let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = std::env::var("PORT").unwrap_or_else(|_| DEFAULT_PORT.to_string());
