@@ -18,6 +18,8 @@ literals:
   #   label: "顧客名"
   # - value: "社内決済システム"
   #   label: "システム名"
+  - value: "戸澤"
+    label: "エージェント側の顧客担当者"
 
 patterns:
   # APIキー / トークン類
