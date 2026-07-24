@@ -7,7 +7,7 @@ use pulldown_cmark::{
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::vault::is_md;
+use crate::vault::{extract_tags_in_text, is_md, is_tag_char};
 
 /// 目次の 1 エントリ。
 pub struct TocEntry {
@@ -101,9 +101,39 @@ pub fn render_full(current_rel: &str, src: &str) -> Rendered {
     let mut out_events: Vec<Event> = Vec::with_capacity(events.len());
     let mut toc: Vec<TocEntry> = Vec::new();
     let mut used_slugs: HashMap<String, usize> = HashMap::new();
+    let mut in_code = false;
+    let mut in_link = 0i32;
     let mut i = 0;
     while i < events.len() {
         match &events[i] {
+            ev @ Event::Start(Tag::Link { .. }) => {
+                in_link += 1;
+                out_events.push(ev.clone());
+                i += 1;
+            }
+            ev @ Event::End(TagEnd::Link) => {
+                in_link -= 1;
+                out_events.push(ev.clone());
+                i += 1;
+            }
+            Event::Html(h) if h.starts_with("<a ") => {
+                in_link += 1;
+                out_events.push(events[i].clone());
+                i += 1;
+            }
+            Event::Html(h) if h.as_ref() == "</a>" => {
+                in_link -= 1;
+                out_events.push(events[i].clone());
+                i += 1;
+            }
+            // 本文テキスト中の #tag をクリック可能に
+            Event::Text(t) if !in_code && in_link == 0 && t.contains('#') => {
+                match linkify_tags(t) {
+                    Some(html) => out_events.push(Event::Html(CowStr::from(html))),
+                    None => out_events.push(events[i].clone()),
+                }
+                i += 1;
+            }
             Event::Start(Tag::Heading { level, .. }) => {
                 let lvl = heading_level(*level);
                 let mut j = i + 1;
@@ -151,6 +181,17 @@ pub fn render_full(current_rel: &str, src: &str) -> Rendered {
                 ))));
                 i = j + 1;
             }
+            // タグリンク化の抑制範囲（コードブロック・リンク内）を追跡
+            ev @ Event::Start(Tag::CodeBlock(_)) => {
+                in_code = true;
+                out_events.push(ev.clone());
+                i += 1;
+            }
+            ev @ Event::End(TagEnd::CodeBlock) => {
+                in_code = false;
+                out_events.push(ev.clone());
+                i += 1;
+            }
             ev => {
                 out_events.push(ev.clone());
                 i += 1;
@@ -161,6 +202,47 @@ pub fn render_full(current_rel: &str, src: &str) -> Rendered {
     let mut out = String::new();
     html::push_html(&mut out, out_events.into_iter());
     Rendered { html: out, toc }
+}
+
+/// テキスト断片中の `#tag` を <a class="tag"> に変換した HTML を返す。タグが無ければ None。
+fn linkify_tags(text: &str) -> Option<String> {
+    if extract_tags_in_text(text).is_empty() {
+        return None;
+    }
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = String::new();
+    let mut plain = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        if c == '#' {
+            let prev_ok = i == 0 || chars[i - 1].is_whitespace();
+            let next_ok = chars.get(i + 1).map(|n| is_tag_char(*n)).unwrap_or(false);
+            if prev_ok && next_ok {
+                let mut j = i + 1;
+                let mut tag = String::new();
+                while j < chars.len() && is_tag_char(chars[j]) {
+                    tag.push(chars[j]);
+                    j += 1;
+                }
+                if !tag.chars().all(|ch| ch.is_ascii_digit()) {
+                    out.push_str(&escape_html(&plain));
+                    plain.clear();
+                    out.push_str(&format!(
+                        "<a href=\"/tag?name={}\" class=\"tag\">#{}</a>",
+                        url_encode(&tag),
+                        escape_html(&tag)
+                    ));
+                    i = j;
+                    continue;
+                }
+            }
+        }
+        plain.push(c);
+        i += 1;
+    }
+    out.push_str(&escape_html(&plain));
+    Some(out)
 }
 
 fn heading_level(level: HeadingLevel) -> u8 {

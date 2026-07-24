@@ -270,6 +270,61 @@ pub(crate) fn extract_wikilink_targets(content: &str) -> Vec<String> {
     out
 }
 
+/// 本文中の `#tag` を列挙する（フェンスコードブロックは除外、重複除去）。
+/// 見出し（`# ` や `##`）はタグ扱いしない。数字のみのタグも除外。
+pub(crate) fn extract_tags(content: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let mut in_fence = false;
+    for line in content.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            in_fence = !in_fence;
+            continue;
+        }
+        if in_fence {
+            continue;
+        }
+        for tag in extract_tags_in_text(line) {
+            if !out.contains(&tag) {
+                out.push(tag);
+            }
+        }
+    }
+    out
+}
+
+/// 1 行（またはテキスト断片）から `#tag` を取り出す。
+pub(crate) fn extract_tags_in_text(text: &str) -> Vec<String> {
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '#' {
+            let prev_ok = i == 0 || chars[i - 1].is_whitespace();
+            let next_ok = chars.get(i + 1).map(|c| is_tag_char(*c)).unwrap_or(false);
+            if prev_ok && next_ok {
+                let mut j = i + 1;
+                let mut tag = String::new();
+                while j < chars.len() && is_tag_char(chars[j]) {
+                    tag.push(chars[j]);
+                    j += 1;
+                }
+                if !tag.chars().all(|c| c.is_ascii_digit()) {
+                    out.push(tag);
+                }
+                i = j;
+                continue;
+            }
+        }
+        i += 1;
+    }
+    out
+}
+
+pub(crate) fn is_tag_char(c: char) -> bool {
+    c.is_alphanumeric() || c == '-' || c == '_' || c == '/'
+}
+
 /// カレントディレクトリから上に辿って git リポジトリのルートを探す。
 fn find_repo_root() -> PathBuf {
     let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));

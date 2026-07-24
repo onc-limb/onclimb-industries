@@ -10,7 +10,7 @@ use topcoat::{
     Result,
 };
 
-use crate::vault::mtime_ms;
+use crate::vault::{is_md, mtime_ms};
 use crate::{config, index, markdown, vault};
 
 // ---------- 保存（自動保存 + 競合検知） ----------
@@ -142,6 +142,147 @@ async fn upload(cx: &Cx, body: Bytes) -> Result<Json<UploadResp>> {
         insert: Some(insert),
         error: None,
     }))
+}
+
+// ---------- ノート操作（リネーム/移動・削除・ピン留め） ----------
+
+#[derive(Deserialize)]
+struct RenameReq {
+    from: String,
+    to: String,
+}
+
+#[derive(Serialize)]
+struct OpResp {
+    ok: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    to: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+}
+
+fn op_fail(msg: String) -> Result<Json<OpResp>> {
+    Ok(Json(OpResp {
+        ok: false,
+        to: None,
+        error: Some(msg),
+    }))
+}
+
+fn op_ok(to: Option<String>) -> Result<Json<OpResp>> {
+    Ok(Json(OpResp {
+        ok: true,
+        to,
+        error: None,
+    }))
+}
+
+/// リネーム兼移動。wikilink の書き換えまでは行わない（参照元は backlinks で追える）。
+#[route(POST "/api/rename")]
+async fn rename(Json(req): Json<RenameReq>) -> Result<Json<OpResp>> {
+    let v = vault::instance();
+    let mut to = req.to.trim().trim_matches('/').to_string();
+    if to.is_empty() {
+        return op_fail("変更先を入力してください".to_string());
+    }
+    if !is_md(&to) {
+        to.push_str(".md");
+    }
+    let Some(from_abs) = v.resolve_note(&req.from) else {
+        return op_fail(format!("不正なパスです: {}", req.from));
+    };
+    if !from_abs.is_file() {
+        return op_fail("元のファイルが見つかりません".to_string());
+    }
+    let Some(to_abs) = v.resolve_note(&to) else {
+        return op_fail(format!("不正な変更先です: {to}"));
+    };
+    if to_abs.exists() {
+        return op_fail(format!("変更先が既に存在します: {to}"));
+    }
+    if let Some(parent) = to_abs.parent() {
+        if std::fs::create_dir_all(parent).is_err() {
+            return op_fail("ディレクトリを作成できませんでした".to_string());
+        }
+    }
+    if let Err(e) = std::fs::rename(&from_abs, &to_abs) {
+        return op_fail(e.to_string());
+    }
+    // ピン留めの追従
+    let mut pins = config::pins();
+    if pins.iter().any(|p| p == &req.from) {
+        for p in pins.iter_mut() {
+            if p == &req.from {
+                *p = to.clone();
+            }
+        }
+        let _ = config::save_pins(&pins);
+    }
+    index::mark_dirty();
+    op_ok(Some(to))
+}
+
+#[derive(Deserialize)]
+struct DeleteReq {
+    path: String,
+}
+
+/// 削除（完全削除ではなく <memo-data>/.trash/ への退避）。
+#[route(POST "/api/delete")]
+async fn delete(Json(req): Json<DeleteReq>) -> Result<Json<OpResp>> {
+    let v = vault::instance();
+    let Some(from_abs) = v.resolve_note(&req.path) else {
+        return op_fail(format!("不正なパスです: {}", req.path));
+    };
+    if !from_abs.is_file() {
+        return op_fail("ファイルが見つかりません".to_string());
+    }
+    let epoch_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let name = req.path.rsplit('/').next().unwrap_or("note.md");
+    let trash_rel = format!("{}/.trash/{epoch_ms}-{name}", config::memo_data());
+    let Some(trash_abs) = v.resolve(&trash_rel) else {
+        return op_fail("退避先を解決できませんでした".to_string());
+    };
+    if let Some(parent) = trash_abs.parent() {
+        if std::fs::create_dir_all(parent).is_err() {
+            return op_fail("退避先を作成できませんでした".to_string());
+        }
+    }
+    if let Err(e) = std::fs::rename(&from_abs, &trash_abs) {
+        return op_fail(e.to_string());
+    }
+    let mut pins = config::pins();
+    if pins.iter().any(|p| p == &req.path) {
+        pins.retain(|p| p != &req.path);
+        let _ = config::save_pins(&pins);
+    }
+    index::mark_dirty();
+    op_ok(Some(trash_rel))
+}
+
+#[derive(Deserialize)]
+struct PinReq {
+    path: String,
+    pinned: bool,
+}
+
+#[route(POST "/api/pin")]
+async fn pin(Json(req): Json<PinReq>) -> Result<Json<OpResp>> {
+    let mut pins = config::pins();
+    if req.pinned {
+        if !pins.iter().any(|p| p == &req.path) {
+            pins.push(req.path.clone());
+        }
+    } else {
+        pins.retain(|p| p != &req.path);
+    }
+    if let Err(e) = config::save_pins(&pins) {
+        return op_fail(e);
+    }
+    op_ok(None)
 }
 
 // ---------- ツリー表示フォルダの管理 ----------

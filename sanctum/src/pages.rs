@@ -23,6 +23,8 @@ async fn chrome(slot: Slot<'_>) -> Result {
         .iter()
         .map(|node| tree_root_html(node, node.name != config::memo_data()))
         .collect();
+    let pins = config::pins();
+    let tags = snap.tag_counts();
     view! {
         <!DOCTYPE html>
         <html lang="ja">
@@ -43,7 +45,30 @@ async fn chrome(slot: Slot<'_>) -> Result {
                             placeholder="パスを開く・新規作成 (例: ideas/foo)">
                         <button type="submit">"→"</button>
                     </form>
+                    if !pins.is_empty() {
+                        <div class="pins">
+                            <div class="section-title">"ピン留め"</div>
+                            for pin in pins {
+                                <a href=(format!("/note?path={}", url_encode(&pin)))
+                                    data-path=(pin.clone())
+                                    title=(pin.clone())>(pin_display(&pin))</a>
+                            }
+                        </div>
+                    }
                     <nav class="tree">(Unescaped::new_unchecked(tree_html))</nav>
+                    if !tags.is_empty() {
+                        <details class="tagbox">
+                            <summary>"タグ"</summary>
+                            <div class="tag-list">
+                                for (tag, count) in tags.into_iter().take(30) {
+                                    <a class="tag-item" href=(format!("/tag?name={}", url_encode(&tag)))>
+                                        (format!("#{tag}"))
+                                        <span class="meta">(format!("{count}"))</span>
+                                    </a>
+                                }
+                            </div>
+                        </details>
+                    }
                     <form class="addroot" id="addroot-form">
                         <input type="text" id="addroot-path"
                             placeholder="ツリーにフォルダ追加 (例: ideas)">
@@ -96,8 +121,32 @@ struct NoteQuery {
 }
 
 #[query_params(error = bad_request)]
+struct TagQuery {
+    name: String,
+}
+
+#[query_params(error = bad_request)]
 struct SearchQuery {
     q: Option<String>,
+}
+
+#[page("/tag")]
+async fn tag_page(cx: &Cx) -> Result {
+    let q = query_params::<TagQuery>(cx)?;
+    let tag = q.name.clone();
+    let notes = index::snapshot().notes_with_tag(&tag);
+    let count = notes.len();
+    view! {
+        <div class="content-inner">
+            <h1>(format!("#{tag}"))</h1>
+            <p class="muted">(format!("{count} 件"))</p>
+            <ul class="note-list">
+                for rel in notes {
+                    <li><a href=(format!("/note?path={}", url_encode(&rel)))>(rel.clone())</a></li>
+                }
+            </ul>
+        </div>
+    }
 }
 
 #[page("/note")]
@@ -150,6 +199,14 @@ async fn note_shell(rel: String, force_insert: bool) -> Result {
     let new_flag = if is_new { "1" } else { "0" };
     let start_mode = if start_insert { "insert" } else { "normal" };
     let tpl_names = template_names();
+    let daily_nav = daily_nav(&rel);
+    let pinned = config::pins().iter().any(|p| p == &rel);
+    let pin_label = if pinned {
+        "ピン留めを解除"
+    } else {
+        "ピン留め"
+    };
+    let pinned_flag = if pinned { "1" } else { "0" };
     view! {
         <div class="content-inner note-page" id="note-page">
             <link rel="stylesheet" href="/vendor/hljs-github.css" media="(prefers-color-scheme: light)">
@@ -164,6 +221,10 @@ async fn note_shell(rel: String, force_insert: bool) -> Result {
                     }
                 </div>
                 <div class="note-actions">
+                    if let Some((prev_href, next_href)) = daily_nav {
+                        <a class="btn" href=(prev_href)>"← 前日"</a>
+                        <a class="btn" href=(next_href)>"翌日 →"</a>
+                    }
                     <select id="tpl-select" title="テンプレート">
                         for name in tpl_names {
                             <option value=(name.clone())>(name.clone())</option>
@@ -175,7 +236,26 @@ async fn note_shell(rel: String, force_insert: bool) -> Result {
                         title="選択中のテンプレートを開いて編集">"テンプレ編集"</button>
                     <span class="status" id="save-status"></span>
                     <span class="mode-badge" id="mode-badge">"NORMAL"</span>
+                    <details class="menu" id="note-menu">
+                        <summary class="btn" title="ノート操作">"…"</summary>
+                        <div class="menu-items">
+                            <button type="button" id="btn-pin" data-pinned=(pinned_flag)>(pin_label)</button>
+                            <button type="button" id="btn-rename">"名前を変更・移動"</button>
+                            <button type="button" id="btn-delete" class="danger">"削除"</button>
+                        </div>
+                    </details>
                 </div>
+            </div>
+            <div class="banner neutral" id="rename-banner" hidden="hidden">
+                <span>"変更先パス:"</span>
+                <input type="text" id="rename-input" value=(rel.clone())>
+                <button class="btn" id="btn-rename-do" type="button">"変更"</button>
+                <button class="btn" id="btn-rename-cancel" type="button">"キャンセル"</button>
+            </div>
+            <div class="banner" id="delete-banner" hidden="hidden">
+                <span>(format!("「{rel}」を memo-data/.trash/ へ移動します。よろしいですか？"))</span>
+                <button class="btn" id="btn-delete-do" type="button">"削除する"</button>
+                <button class="btn" id="btn-delete-cancel" type="button">"キャンセル"</button>
             </div>
             <div class="banner" id="conflict-banner" hidden="hidden">
                 <span id="conflict-msg">"ファイルが外部で変更されています。"</span>
@@ -242,6 +322,61 @@ async fn search_page(cx: &Cx) -> Result {
             }
         </div>
     }
+}
+
+/// ピン留めのサイドバー表示名（ファイル名の stem）。
+fn pin_display(rel: &str) -> String {
+    std::path::Path::new(rel)
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| rel.to_string())
+}
+
+/// rel がデイリーノート（<daily>/YYYY-MM-DD.md）なら前日・翌日ノートへの href を返す。
+fn daily_nav(rel: &str) -> Option<(String, String)> {
+    let dir = config::daily_dir();
+    let stem = rel.strip_prefix(&format!("{dir}/"))?.strip_suffix(".md")?;
+    let mut parts = stem.split('-');
+    let y: i64 = parts.next()?.parse().ok()?;
+    let m: i64 = parts.next()?.parse().ok()?;
+    let d: i64 = parts.next()?.parse().ok()?;
+    if parts.next().is_some() || !(1..=12).contains(&m) || !(1..=31).contains(&d) {
+        return None;
+    }
+    let days = days_from_civil(y, m, d);
+    let href = |z: i64| {
+        let (yy, mm, dd) = civil_from_days(z);
+        format!(
+            "/note?path={}",
+            url_encode(&format!("{dir}/{yy:04}-{mm:02}-{dd:02}.md"))
+        )
+    };
+    Some((href(days - 1), href(days + 1)))
+}
+
+/// グレゴリオ暦 → 通算日数（Howard Hinnant の civil アルゴリズム）。
+fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = if y >= 0 { y } else { y - 399 } / 400;
+    let yoe = y - era * 400;
+    let mp = (m + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146097 + doe - 719468
+}
+
+/// 通算日数 → グレゴリオ暦。
+fn civil_from_days(z: i64) -> (i64, i64, i64) {
+    let z = z + 719468;
+    let era = if z >= 0 { z } else { z - 146096 } / 146097;
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    (if m <= 2 { y + 1 } else { y }, m, d)
 }
 
 /// rel が組み込みテンプレートの上書きパス（<templates>/<name>.md）なら

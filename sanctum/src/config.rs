@@ -60,6 +60,8 @@ fn tree_config_rel() -> String {
 struct TreeConfig {
     #[serde(default)]
     tree_roots: Vec<String>,
+    #[serde(default)]
+    pins: Vec<String>,
 }
 
 fn load_tree_config() -> TreeConfig {
@@ -81,20 +83,34 @@ pub fn tree_roots() -> Vec<String> {
         .collect()
 }
 
-pub fn save_tree_roots(roots: &[String]) -> Result<(), String> {
+fn store_tree_config(config: &TreeConfig) -> Result<(), String> {
     let path = vault::instance()
         .resolve(&tree_config_rel())
         .ok_or_else(|| "設定ファイルのパスを解決できません".to_string())?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
-    let config = TreeConfig {
-        tree_roots: roots
-            .iter()
-            .filter(|r| *r != memo_data())
-            .cloned()
-            .collect(),
-    };
-    let json = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
+    let json = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
     std::fs::write(path, json).map_err(|e| e.to_string())
+}
+
+pub fn save_tree_roots(roots: &[String]) -> Result<(), String> {
+    let mut config = load_tree_config();
+    config.tree_roots = roots
+        .iter()
+        .filter(|r| *r != memo_data())
+        .cloned()
+        .collect();
+    store_tree_config(&config)
+}
+
+/// ピン留めしたノート（vault 相対パス）。
+pub fn pins() -> Vec<String> {
+    load_tree_config().pins
+}
+
+pub fn save_pins(pins: &[String]) -> Result<(), String> {
+    let mut config = load_tree_config();
+    config.pins = pins.to_vec();
+    store_tree_config(&config)
 }

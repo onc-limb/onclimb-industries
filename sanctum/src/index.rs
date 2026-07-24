@@ -26,6 +26,15 @@ pub struct SearchHit {
     pub lines: Vec<(usize, String)>,
 }
 
+/// ノート 1 件分の本文スキャン結果（mtime が変わらない限り使い回す）。
+#[derive(Clone, Default)]
+struct NoteScan {
+    /// wikilink のターゲット（小文字・生文字列）
+    links: Vec<String>,
+    /// 本文中の #タグ
+    tags: Vec<String>,
+}
+
 pub struct Snapshot {
     /// サイドバーに表示するフォレスト（設定 tree_roots の順）
     pub forest: Vec<DirNode>,
@@ -33,8 +42,8 @@ pub struct Snapshot {
     note_set: HashSet<String>,
     /// 小文字化した stem → 相対パス一覧
     stems: BTreeMap<String, Vec<String>>,
-    /// 相対パス → そのノートが張っている wikilink のターゲット（小文字・生文字列）
-    links: HashMap<String, Vec<String>>,
+    /// 相対パス → 本文スキャン結果
+    scans: HashMap<String, NoteScan>,
 }
 
 impl Snapshot {
@@ -74,11 +83,11 @@ impl Snapshot {
             .unwrap_or_default();
         let target_lower = target_rel.to_lowercase();
         let mut out = Vec::new();
-        for (rel, bases) in &self.links {
+        for (rel, scan) in &self.scans {
             if rel == target_rel {
                 continue;
             }
-            let hit = bases.iter().any(|base| {
+            let hit = scan.links.iter().any(|base| {
                 if base.contains('/') {
                     let rel_target = if is_md(base) {
                         base.clone()
@@ -100,6 +109,34 @@ impl Snapshot {
 
     pub fn note_paths(&self) -> Vec<String> {
         self.notes.iter().map(|n| n.rel.clone()).collect()
+    }
+
+    /// タグ → 件数（件数降順・同数はタグ名順）。
+    pub fn tag_counts(&self) -> Vec<(String, usize)> {
+        let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
+        for scan in self.scans.values() {
+            for tag in &scan.tags {
+                *counts.entry(tag.as_str()).or_insert(0) += 1;
+            }
+        }
+        let mut out: Vec<(String, usize)> = counts
+            .into_iter()
+            .map(|(t, c)| (t.to_string(), c))
+            .collect();
+        out.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        out
+    }
+
+    /// 指定タグを含むノートの相対パス一覧。
+    pub fn notes_with_tag(&self, tag: &str) -> Vec<String> {
+        let mut out: Vec<String> = self
+            .scans
+            .iter()
+            .filter(|(_, scan)| scan.tags.iter().any(|t| t == tag))
+            .map(|(rel, _)| rel.clone())
+            .collect();
+        out.sort();
+        out
     }
 
     /// 大文字小文字を無視した全文検索。ファイル名一致 or 本文一致。
@@ -147,8 +184,8 @@ struct State {
     snap: Arc<Snapshot>,
     built: Instant,
     dirty: bool,
-    /// 前回 wikilink を解析した時点の mtime（差分更新用）
-    link_mtimes: HashMap<String, u64>,
+    /// 前回本文を解析した時点の mtime（差分更新用）
+    scan_mtimes: HashMap<String, u64>,
 }
 
 fn state() -> &'static RwLock<Option<State>> {
@@ -173,17 +210,17 @@ pub fn snapshot() -> Arc<Snapshot> {
             return st.snap.clone();
         }
     }
-    let (prev_links, prev_mtimes) = match guard.take() {
+    let (prev_scans, prev_mtimes) = match guard.take() {
         Some(st) => {
             let snap = Arc::try_unwrap(st.snap);
             match snap {
-                Ok(s) => (s.links, st.link_mtimes),
-                Err(arc) => (arc.links.clone(), st.link_mtimes),
+                Ok(s) => (s.scans, st.scan_mtimes),
+                Err(arc) => (arc.scans.clone(), st.scan_mtimes),
             }
         }
         None => (HashMap::new(), HashMap::new()),
     };
-    let st = rebuild(prev_links, prev_mtimes);
+    let st = rebuild(prev_scans, prev_mtimes);
     let snap = st.snap.clone();
     *guard = Some(st);
     snap
@@ -196,7 +233,7 @@ pub fn mark_dirty() {
     }
 }
 
-fn rebuild(prev_links: HashMap<String, Vec<String>>, prev_mtimes: HashMap<String, u64>) -> State {
+fn rebuild(prev_scans: HashMap<String, NoteScan>, prev_mtimes: HashMap<String, u64>) -> State {
     let v = vault::instance();
     // memo-data は常に先頭に固定表示。追加分（config）はその後ろに続く。
     let mut roots = vec![config::memo_data().to_string()];
@@ -216,8 +253,8 @@ fn rebuild(prev_links: HashMap<String, Vec<String>>, prev_mtimes: HashMap<String
         .collect();
 
     let mut notes = Vec::new();
-    let mut links = HashMap::new();
-    let mut link_mtimes = HashMap::new();
+    let mut scans = HashMap::new();
+    let mut scan_mtimes = HashMap::new();
     let mut stems: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut note_set = HashSet::new();
 
@@ -226,13 +263,13 @@ fn rebuild(prev_links: HashMap<String, Vec<String>>, prev_mtimes: HashMap<String
             return;
         }
         let mtime = mtime_ms(abs).unwrap_or(0);
-        // wikilink グラフ: mtime が変わっていなければ前回の解析結果を使い回す
-        let bases = if prev_mtimes.get(rel) == Some(&mtime) {
-            prev_links.get(rel).cloned().unwrap_or_default()
+        // 本文スキャン: mtime が変わっていなければ前回の解析結果を使い回す
+        let scan = if prev_mtimes.get(rel) == Some(&mtime) {
+            prev_scans.get(rel).cloned().unwrap_or_default()
         } else {
             std::fs::read_to_string(abs)
-                .map(|content| {
-                    extract_wikilink_targets(&content)
+                .map(|content| NoteScan {
+                    links: extract_wikilink_targets(&content)
                         .iter()
                         .filter_map(|l| {
                             let base = l.split(['|', '#']).next().unwrap_or("").trim();
@@ -242,7 +279,8 @@ fn rebuild(prev_links: HashMap<String, Vec<String>>, prev_mtimes: HashMap<String
                                 Some(base.to_lowercase())
                             }
                         })
-                        .collect()
+                        .collect(),
+                    tags: vault::extract_tags(&content),
                 })
                 .unwrap_or_default()
         };
@@ -252,8 +290,8 @@ fn rebuild(prev_links: HashMap<String, Vec<String>>, prev_mtimes: HashMap<String
             .unwrap_or_default();
         stems.entry(stem).or_default().push(rel.to_string());
         note_set.insert(rel.to_string());
-        links.insert(rel.to_string(), bases);
-        link_mtimes.insert(rel.to_string(), mtime);
+        scans.insert(rel.to_string(), scan);
+        scan_mtimes.insert(rel.to_string(), mtime);
         notes.push(NoteMeta {
             rel: rel.to_string(),
         });
@@ -275,10 +313,10 @@ fn rebuild(prev_links: HashMap<String, Vec<String>>, prev_mtimes: HashMap<String
             notes,
             note_set,
             stems,
-            links,
+            scans,
         }),
         built: Instant::now(),
         dirty: false,
-        link_mtimes,
+        scan_mtimes,
     }
 }
