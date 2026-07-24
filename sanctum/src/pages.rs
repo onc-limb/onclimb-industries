@@ -7,7 +7,7 @@ use topcoat::{
     Result,
 };
 
-use crate::api::template_names;
+use crate::api::{builtin_template, template_names};
 use crate::markdown::{escape_attr, escape_html, render_full, url_encode, TocEntry};
 use crate::vault::{self, mtime_ms, DirNode};
 use crate::{config, index};
@@ -34,8 +34,7 @@ async fn chrome(slot: Slot<'_>) -> Result {
             </head>
             <body>
                 <aside class="sidebar">
-                    <div class="brand"><a href="/">"🏛 Sanctum"</a></div>
-                    <a class="btn today" href="/today">"📅 今日のメモ"</a>
+                    <a class="btn today" href="/today">"今日のメモ"</a>
                     <form class="search" action="/search" method="get">
                         <input type="search" name="q" placeholder="検索…">
                     </form>
@@ -124,6 +123,13 @@ async fn note_shell(rel: String, force_insert: bool) -> Result {
         Some(c) => (c, false),
         None => (String::new(), true),
     };
+    // 組み込みテンプレート（daily/meeting）の上書きファイルを新規で開いた場合は、
+    // 組み込みの中身を展開した状態から編集を始める（保存するとカスタム版が優先される）。
+    let content = if is_new {
+        template_prefill(&rel).unwrap_or(content)
+    } else {
+        content
+    };
     let start_insert = force_insert || is_new;
     let rendered = render_full(&rel, &content);
     let toc_html = toc_html(&rendered.toc);
@@ -164,6 +170,9 @@ async fn note_shell(rel: String, force_insert: bool) -> Result {
                         }
                     </select>
                     <button class="btn" id="tpl-insert" type="button">"テンプレ挿入"</button>
+                    <button class="btn" id="tpl-edit" type="button"
+                        data-templates-dir=(config::templates_dir())
+                        title="選択中のテンプレートを開いて編集">"テンプレ編集"</button>
                     <span class="status" id="save-status"></span>
                     <span class="mode-badge" id="mode-badge">"NORMAL"</span>
                 </div>
@@ -233,6 +242,14 @@ async fn search_page(cx: &Cx) -> Result {
             }
         </div>
     }
+}
+
+/// rel が組み込みテンプレートの上書きパス（<templates>/<name>.md）なら
+/// その組み込みの生テキストを返す。
+fn template_prefill(rel: &str) -> Option<String> {
+    let dir = config::templates_dir();
+    let name = rel.strip_prefix(&format!("{dir}/"))?.strip_suffix(".md")?;
+    builtin_template(name).map(|s| s.to_string())
 }
 
 /// 表示フォルダ（設定した根）1 つ分のツリー HTML。

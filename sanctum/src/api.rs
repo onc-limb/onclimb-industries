@@ -245,6 +245,14 @@ const BUILTIN_TEMPLATES: [(&str, &str); 2] = [
     ),
 ];
 
+/// 組み込みテンプレートの生テキスト（プレースホルダ未展開）。
+pub fn builtin_template(name: &str) -> Option<&'static str> {
+    BUILTIN_TEMPLATES
+        .iter()
+        .find(|(n, _)| *n == name)
+        .map(|(_, c)| *c)
+}
+
 /// 利用可能なテンプレート名の一覧（組み込み + テンプレートディレクトリの md）。
 pub fn template_names() -> Vec<String> {
     let mut names: Vec<String> = BUILTIN_TEMPLATES

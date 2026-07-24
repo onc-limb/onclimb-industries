@@ -493,9 +493,10 @@
     ta.setSelectionRange(ta.value.length, ta.value.length);
   }
 
-  // ---- テンプレート挿入 ----
+  // ---- テンプレート挿入・編集 ----
   var tplSelect = document.getElementById("tpl-select");
   var tplInsert = document.getElementById("tpl-insert");
+  var tplEdit = document.getElementById("tpl-edit");
   if (tplInsert && tplSelect) {
     tplInsert.addEventListener("click", function () {
       fetch("/api/template?name=" + encodeURIComponent(tplSelect.value))
@@ -506,6 +507,13 @@
           insertAtCursor(fillPlaceholders(d.content));
         })
         .catch(function () {});
+    });
+  }
+  if (tplEdit && tplSelect) {
+    tplEdit.addEventListener("click", function () {
+      var dir = tplEdit.dataset.templatesDir;
+      location.href =
+        "/edit?path=" + encodeURIComponent(dir + "/" + tplSelect.value + ".md");
     });
   }
 
