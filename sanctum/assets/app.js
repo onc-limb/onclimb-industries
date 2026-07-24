@@ -376,15 +376,20 @@
 
   // ---- INSERT モード内のキー操作 ----
   ta.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      exitInsert();
-      return;
-    }
     if (e.key === "Tab") {
       e.preventDefault();
       insertAtCursor("  ");
     }
+  });
+
+  // Esc はドキュメントレベルで拾う（テンプレボタン等にフォーカスが移っていても効くように）。
+  // IME 変換中の Esc は変換キャンセルなのでモードは変えない。
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape" || mode !== "insert") return;
+    if (e.isComposing || e.keyCode === 229) return;
+    if (e.target === paletteInput || !overlay.hidden) return; // パレットの Esc は閉じる操作
+    e.preventDefault();
+    exitInsert();
   });
 
   document.addEventListener("keydown", function (e) {
