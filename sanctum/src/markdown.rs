@@ -19,7 +19,6 @@ pub struct TocEntry {
 pub struct Rendered {
     pub html: String,
     pub toc: Vec<TocEntry>,
-    pub has_mermaid: bool,
 }
 
 pub fn render(current_rel: &str, src: &str) -> String {
@@ -102,7 +101,6 @@ pub fn render_full(current_rel: &str, src: &str) -> Rendered {
     let mut out_events: Vec<Event> = Vec::with_capacity(events.len());
     let mut toc: Vec<TocEntry> = Vec::new();
     let mut used_slugs: HashMap<String, usize> = HashMap::new();
-    let mut has_mermaid = false;
     let mut i = 0;
     while i < events.len() {
         match &events[i] {
@@ -147,7 +145,6 @@ pub fn render_full(current_rel: &str, src: &str) -> Rendered {
                     }
                     j += 1;
                 }
-                has_mermaid = true;
                 out_events.push(Event::Html(CowStr::from(format!(
                     "<pre class=\"mermaid\">{}</pre>",
                     escape_html(&code)
@@ -163,11 +160,7 @@ pub fn render_full(current_rel: &str, src: &str) -> Rendered {
 
     let mut out = String::new();
     html::push_html(&mut out, out_events.into_iter());
-    Rendered {
-        html: out,
-        toc,
-        has_mermaid,
-    }
+    Rendered { html: out, toc }
 }
 
 fn heading_level(level: HeadingLevel) -> u8 {

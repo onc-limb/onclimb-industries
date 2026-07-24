@@ -3,6 +3,7 @@
 
   var params = new URLSearchParams(location.search);
   var currentPath = params.get("path");
+  var contentEl = document.querySelector(".content");
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function fillPlaceholders(text) {
@@ -13,6 +14,14 @@
       .replace(/\{\{date\}\}/g, date)
       .replace(/\{\{time\}\}/g, time)
       .replace(/\{\{datetime\}\}/g, date + " " + time);
+  }
+
+  function isTyping() {
+    var el = document.activeElement;
+    return (
+      el &&
+      (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT")
+    );
   }
 
   // ---- mermaid / highlight.js のレンダリング（vendored、無ければ何もしない）----
@@ -40,7 +49,7 @@
   }
   renderExtras(document);
 
-  // ---- 新規ノート作成フォーム（サイドバー）----
+  // ---- パスを開く・新規作成（サイドバー）----
   var newForm = document.getElementById("newnote-form");
   if (newForm) {
     newForm.addEventListener("submit", function (e) {
@@ -210,76 +219,32 @@
       else paletteClose();
       return;
     }
-    if (mod && e.key === "e" && currentPath) {
+    if (mod && e.key === "e" && window.__toggleMode) {
       e.preventDefault();
-      var toEdit = location.pathname === "/note";
-      location.href = (toEdit ? "/edit" : "/note") + "?path=" + encodeURIComponent(currentPath);
+      window.__toggleMode();
     }
   });
 
-  // ---- 閲覧ページ: 外部変更の自動リロード（スクロール位置維持）----
-  var watch = document.querySelector("[data-watch-path]");
-  var contentEl = document.querySelector(".content");
-  if (watch && contentEl) {
-    var scrollKey = "scroll:" + location.pathname + location.search;
-    var savedScroll = sessionStorage.getItem(scrollKey);
-    if (savedScroll !== null) {
-      contentEl.scrollTop = parseInt(savedScroll, 10);
-      sessionStorage.removeItem(scrollKey);
-    }
-    var watchBase = parseInt(watch.dataset.mtime, 10) || 0;
-    var checkExternal = function () {
-      fetch("/api/mtime?path=" + encodeURIComponent(watch.dataset.watchPath))
-        .then(function (r) { return r.json(); })
-        .then(function (d) {
-          if (d.mtime && watchBase && d.mtime > watchBase) {
-            sessionStorage.setItem(scrollKey, contentEl.scrollTop);
-            location.reload();
-          }
-        })
-        .catch(function () {});
-    };
-    // タブが見えているときだけポーリングする（常駐サーバーの負荷をゼロに近づける）
-    setInterval(function () {
-      if (document.hidden) return;
-      checkExternal();
-    }, 3000);
-    document.addEventListener("visibilitychange", function () {
-      if (!document.hidden) checkExternal();
-    });
-  }
-
-  // ---- エディタ ----
+  // ---- ノートページ（vim 風モーダル編集）----
   var ta = document.getElementById("editor");
   if (!ta) return;
-  var preview = document.getElementById("preview");
+  var notePage = document.getElementById("note-page");
+  var viewEl = document.getElementById("view");
+  var modeBadge = document.getElementById("mode-badge");
   var status = document.getElementById("save-status");
   var conflictBanner = document.getElementById("conflict-banner");
   var conflictMsg = document.getElementById("conflict-msg");
   var path = ta.dataset.path;
   var noteDir = ta.dataset.dir;
   var baseMtime = parseInt(ta.dataset.mtime, 10) || 0;
+  var mode = "normal";
+  var lastCursor = 0;
+  var pendingHtml = null; // INSERT 中に届いた最新レンダリング（Esc で反映）
   var dirty = false;
   var saving = false;
   var queued = false;
   var timer = null;
-
-  // 新規デイリーノートには daily テンプレートを自動で敷く（保存はユーザーが書き始めてから）
-  var dailyDir = ta.dataset.dailyDir;
-  if (ta.dataset.new === "1" && !ta.value && dailyDir && path.indexOf(dailyDir + "/") === 0) {
-    fetch("/api/template?name=daily")
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (!ta.value && d.content) {
-          ta.value = fillPlaceholders(d.content);
-          ta.focus();
-          ta.setSelectionRange(ta.value.length, ta.value.length);
-        }
-      })
-      .catch(function () {});
-  } else {
-    ta.focus();
-  }
+  var pendingG = 0;
 
   function setStatus(text, cls) {
     if (!status) return;
@@ -294,6 +259,45 @@
   function hideConflict() {
     if (conflictBanner) conflictBanner.hidden = true;
   }
+
+  function setMode(m) {
+    mode = m;
+    var insert = m === "insert";
+    notePage.classList.toggle("mode-insert", insert);
+    ta.hidden = !insert;
+    if (modeBadge) {
+      modeBadge.textContent = insert ? "INSERT" : "NORMAL";
+      modeBadge.classList.toggle("insert", insert);
+    }
+  }
+
+  function enterInsert(pos) {
+    setMode("insert");
+    ta.focus();
+    var p = typeof pos === "number" ? pos : lastCursor;
+    p = Math.min(p, ta.value.length);
+    ta.setSelectionRange(p, p);
+  }
+
+  function exitInsert() {
+    lastCursor = ta.selectionStart;
+    setMode("normal");
+    if (pendingHtml !== null) {
+      viewEl.innerHTML = pendingHtml;
+      renderExtras(viewEl);
+      pendingHtml = null;
+    }
+    if (dirty) {
+      clearTimeout(timer);
+      save(false);
+    }
+    ta.blur();
+  }
+
+  window.__toggleMode = function () {
+    if (mode === "normal") enterInsert();
+    else exitInsert();
+  };
 
   function save(force) {
     if (saving) {
@@ -317,9 +321,14 @@
           dirty = false;
           hideConflict();
           if (data.mtime) baseMtime = data.mtime;
-          if (preview && typeof data.html === "string") {
-            preview.innerHTML = data.html;
-            renderExtras(preview);
+          if (typeof data.html === "string") {
+            if (mode === "normal") {
+              viewEl.innerHTML = data.html;
+              renderExtras(viewEl);
+              pendingHtml = null;
+            } else {
+              pendingHtml = data.html;
+            }
           }
           setStatus("保存済み " + new Date().toLocaleTimeString(), "saved");
         } else if (data.conflict) {
@@ -353,21 +362,6 @@
     timer = setTimeout(function () { save(false); }, 700);
   });
 
-  document.addEventListener("keydown", function (e) {
-    var mod = e.metaKey || e.ctrlKey;
-    if (mod && e.key === "s") {
-      e.preventDefault();
-      clearTimeout(timer);
-      save(false);
-    }
-    // ⌘; で現在時刻を挿入（MTG 中の発言メモ用。⌘T はブラウザに取られるため）
-    if (mod && e.key === ";") {
-      e.preventDefault();
-      var d = new Date();
-      insertAtCursor(pad(d.getHours()) + ":" + pad(d.getMinutes()) + " ");
-    }
-  });
-
   window.addEventListener("beforeunload", function (e) {
     if (dirty) e.preventDefault();
   });
@@ -380,13 +374,119 @@
     ta.dispatchEvent(new Event("input"));
   }
 
-  // Tab キーでスペース 2 個を挿入
+  // ---- INSERT モード内のキー操作 ----
   ta.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      exitInsert();
+      return;
+    }
     if (e.key === "Tab") {
       e.preventDefault();
       insertAtCursor("  ");
     }
   });
+
+  document.addEventListener("keydown", function (e) {
+    var mod = e.metaKey || e.ctrlKey;
+    if (mod && e.key === "s") {
+      e.preventDefault();
+      clearTimeout(timer);
+      save(false);
+      return;
+    }
+    // ⌘; で現在時刻を挿入（MTG 中の発言メモ用。⌘T はブラウザに取られるため）
+    if (mod && e.key === ";" && mode === "insert") {
+      e.preventDefault();
+      var d = new Date();
+      insertAtCursor(pad(d.getHours()) + ":" + pad(d.getMinutes()) + " ");
+    }
+  });
+
+  // ---- NORMAL モードの vim 風キーバインド ----
+  var SCROLL_STEP = 70;
+  document.addEventListener("keydown", function (e) {
+    if (mode !== "normal") return;
+    if (!overlay.hidden) return; // パレット表示中
+    if (isTyping()) return; // サイドバーの入力欄など
+    if (e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === "d" || e.key === "u") {
+        e.preventDefault();
+        var half = contentEl.clientHeight / 2;
+        contentEl.scrollBy({ top: e.key === "d" ? half : -half });
+      }
+      return;
+    }
+    if (e.metaKey || e.altKey) return;
+    switch (e.key) {
+      case "i":
+      case "a":
+        e.preventDefault();
+        enterInsert();
+        break;
+      case "A":
+        e.preventDefault();
+        enterInsert(ta.value.length);
+        break;
+      case "o":
+        e.preventDefault();
+        enterInsert(ta.value.length);
+        if (ta.value.length && !ta.value.endsWith("\n")) {
+          insertAtCursor("\n");
+        }
+        break;
+      case "j":
+        e.preventDefault();
+        contentEl.scrollBy({ top: SCROLL_STEP });
+        break;
+      case "k":
+        e.preventDefault();
+        contentEl.scrollBy({ top: -SCROLL_STEP });
+        break;
+      case "G":
+        e.preventDefault();
+        contentEl.scrollTo({ top: contentEl.scrollHeight });
+        break;
+      case "g":
+        if (pendingG && Date.now() - pendingG < 600) {
+          e.preventDefault();
+          contentEl.scrollTo({ top: 0 });
+          pendingG = 0;
+        } else {
+          pendingG = Date.now();
+        }
+        break;
+      case "/": {
+        e.preventDefault();
+        var search = document.querySelector(".search input");
+        if (search) search.focus();
+        break;
+      }
+    }
+    if (e.key !== "g") pendingG = 0;
+  });
+
+  // ---- 初期モード / 新規デイリーノートのテンプレート展開 ----
+  var dailyDir = ta.dataset.dailyDir;
+  var startInsert = ta.dataset.startMode === "insert";
+  if (startInsert) setMode("insert");
+  if (ta.dataset.new === "1" && !ta.value && dailyDir && path.indexOf(dailyDir + "/") === 0) {
+    fetch("/api/template?name=daily")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!ta.value && d.content) {
+          ta.value = fillPlaceholders(d.content);
+          if (mode === "insert") {
+            ta.focus();
+            ta.setSelectionRange(ta.value.length, ta.value.length);
+          }
+        }
+      })
+      .catch(function () {});
+  } else if (startInsert) {
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+  }
 
   // ---- テンプレート挿入 ----
   var tplSelect = document.getElementById("tpl-select");
@@ -396,7 +496,9 @@
       fetch("/api/template?name=" + encodeURIComponent(tplSelect.value))
         .then(function (r) { return r.json(); })
         .then(function (d) {
-          if (d.content) insertAtCursor(fillPlaceholders(d.content));
+          if (!d.content) return;
+          if (mode === "normal") enterInsert(ta.value.length);
+          insertAtCursor(fillPlaceholders(d.content));
         })
         .catch(function () {});
     });
@@ -429,17 +531,34 @@
     }
   });
 
-  // ---- 編集中の外部変更を早期警告（保存前に気づけるように）----
-  // タブ非表示中はポーリングしない
-  setInterval(function () {
-    if (document.hidden || saving) return;
+  // ---- 外部変更の監視（タブ表示中のみ 3 秒ごと）----
+  // NORMAL かつ未編集なら自動リロード（スクロール位置維持）、編集中なら競合警告。
+  var scrollKey = "scroll:" + location.pathname + location.search;
+  var savedScroll = sessionStorage.getItem(scrollKey);
+  if (savedScroll !== null && contentEl) {
+    contentEl.scrollTop = parseInt(savedScroll, 10);
+    sessionStorage.removeItem(scrollKey);
+  }
+  function checkExternal() {
+    if (saving) return;
     fetch("/api/mtime?path=" + encodeURIComponent(path))
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (d.mtime && baseMtime && d.mtime > baseMtime && conflictBanner && conflictBanner.hidden) {
+        if (!d.mtime || !baseMtime || d.mtime <= baseMtime) return;
+        if (mode === "normal" && !dirty) {
+          sessionStorage.setItem(scrollKey, contentEl ? contentEl.scrollTop : 0);
+          location.reload();
+        } else if (conflictBanner && conflictBanner.hidden) {
           showConflict("他のプロセスがこのファイルを変更しました（保存すると競合します）。");
         }
       })
       .catch(function () {});
-  }, 5000);
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    checkExternal();
+  }, 3000);
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) checkExternal();
+  });
 })();

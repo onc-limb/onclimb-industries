@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use topcoat::{
     context::Cx,
     router::{layout, page, query_params, Slot},
-    view::{view, Unescaped},
+    view::{component, view, Unescaped},
     Result,
 };
 
@@ -54,7 +54,7 @@ async fn chrome(slot: Slot<'_>) -> Result {
                         <button type="submit">"+"</button>
                     </form>
                     <div class="hint" id="root-msg"></div>
-                    <div class="hint">"⌘K 移動 ／ ⌘E 編集⇄閲覧 ／ ⌘S 保存"</div>
+                    <div class="hint">"i 編集 ／ Esc 閲覧 ／ ⌘K 移動 ／ ⌘S 保存"</div>
                 </aside>
                 <main class="content">(slot.await?)</main>
                 <div id="palette-overlay" hidden="hidden">
@@ -123,77 +123,35 @@ struct SearchQuery {
 
 #[page("/note")]
 async fn note_page(cx: &Cx) -> Result {
-    let v = vault::instance();
     let q = query_params::<NoteQuery>(cx)?;
     let rel = q.path.clone();
-    let edit_href = format!("/edit?path={}", url_encode(&rel));
-
-    let Some(content) = v.read_note(&rel) else {
-        return view! {
-            <div class="content-inner">
-                <div class="notice">
-                    <p>(format!("「{rel}」はまだ存在しません。"))</p>
-                    <a class="btn primary" href=(edit_href)>"作成して編集する"</a>
-                </div>
-            </div>
-        };
-    };
-
-    let rendered = render_full(&rel, &content);
-    let toc_html = toc_html(&rendered.toc);
-    let backlinks = index::snapshot().backlinks(&rel);
-    let mtime = v
-        .resolve_note(&rel)
-        .and_then(|p| mtime_ms(&p))
-        .unwrap_or(0)
-        .to_string();
-    let has_mermaid = rendered.has_mermaid;
-    view! {
-        <div class="content-inner" data-watch-path=(rel.clone()) data-mtime=(mtime)>
-            <link rel="stylesheet" href="/vendor/hljs-github.css" media="(prefers-color-scheme: light)">
-            <link rel="stylesheet" href="/vendor/hljs-github-dark.css" media="(prefers-color-scheme: dark)">
-            <script src="/vendor/highlight.js"></script>
-            if has_mermaid {
-                <script src="/vendor/mermaid.js"></script>
-            }
-            <div class="note-head">
-                <div class="note-path">(rel.clone())</div>
-                <div class="note-actions">
-                    <a class="btn primary" href=(edit_href)>"編集 (⌘E)"</a>
-                </div>
-            </div>
-            if !toc_html.is_empty() {
-                <aside class="toc">
-                    <div class="toc-title">"目次"</div>
-                    (Unescaped::new_unchecked(toc_html))
-                </aside>
-            }
-            <article class="markdown-body">(Unescaped::new_unchecked(rendered.html))</article>
-            if !backlinks.is_empty() {
-                <section class="backlinks">
-                    <h2>"このノートへのリンク"</h2>
-                    <ul class="note-list">
-                        for bl in backlinks {
-                            <li><a href=(format!("/note?path={}", url_encode(&bl)))>(bl.clone())</a></li>
-                        }
-                    </ul>
-                </section>
-            }
-        </div>
-    }
+    view! { note_shell(rel: rel, force_insert: false) }
 }
 
 #[page("/edit")]
 async fn edit_page(cx: &Cx) -> Result {
-    let v = vault::instance();
     let q = query_params::<NoteQuery>(cx)?;
     let rel = q.path.clone();
+    view! { note_shell(rel: rel, force_insert: true) }
+}
+
+/// 閲覧（NORMAL）と編集（INSERT）を 1 ページに統合したノート画面。
+/// モード切り替えは vim 風キーバインド（i で編集、Esc で閲覧）。
+#[component]
+async fn note_shell(rel: String, force_insert: bool) -> Result {
+    let v = vault::instance();
     let (content, is_new) = match v.read_note(&rel) {
         Some(c) => (c, false),
         None => (String::new(), true),
     };
+    let start_insert = force_insert || is_new;
     let rendered = render_full(&rel, &content);
-    let view_href = format!("/note?path={}", url_encode(&rel));
+    let toc_html = toc_html(&rendered.toc);
+    let backlinks = if is_new {
+        Vec::new()
+    } else {
+        index::snapshot().backlinks(&rel)
+    };
     let mtime = v
         .resolve_note(&rel)
         .and_then(|p| mtime_ms(&p))
@@ -204,14 +162,15 @@ async fn edit_page(cx: &Cx) -> Result {
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_default();
     let new_flag = if is_new { "1" } else { "0" };
+    let start_mode = if start_insert { "insert" } else { "normal" };
     let tpl_names = template_names();
     view! {
-        <div class="editor-page">
+        <div class="content-inner note-page" id="note-page">
             <link rel="stylesheet" href="/vendor/hljs-github.css" media="(prefers-color-scheme: light)">
             <link rel="stylesheet" href="/vendor/hljs-github-dark.css" media="(prefers-color-scheme: dark)">
             <script src="/vendor/highlight.js"></script>
             <script src="/vendor/mermaid.js"></script>
-            <div class="editor-head">
+            <div class="note-head">
                 <div class="note-path">
                     (rel.clone())
                     if is_new {
@@ -226,7 +185,7 @@ async fn edit_page(cx: &Cx) -> Result {
                     </select>
                     <button class="btn" id="tpl-insert" type="button">"テンプレ挿入"</button>
                     <span class="status" id="save-status"></span>
-                    <a class="btn" href=(view_href)>"閲覧 (⌘E)"</a>
+                    <span class="mode-badge" id="mode-badge">"NORMAL"</span>
                 </div>
             </div>
             <div class="banner" id="conflict-banner" hidden="hidden">
@@ -234,16 +193,31 @@ async fn edit_page(cx: &Cx) -> Result {
                 <button class="btn" id="btn-conflict-reload" type="button">"読み込み直す"</button>
                 <button class="btn" id="btn-conflict-force" type="button">"自分の内容で上書き"</button>
             </div>
-            <div class="editor-split">
-                <textarea id="editor"
-                    data-path=(rel.clone())
-                    data-dir=(note_dir)
-                    data-mtime=(mtime)
-                    data-new=(new_flag)
-                    data-daily-dir=(daily_dir())
-                    spellcheck="false">(content)</textarea>
-                <div id="preview" class="markdown-body">(Unescaped::new_unchecked(rendered.html))</div>
-            </div>
+            if !toc_html.is_empty() {
+                <aside class="toc">
+                    <div class="toc-title">"目次"</div>
+                    (Unescaped::new_unchecked(toc_html))
+                </aside>
+            }
+            <article id="view" class="markdown-body">(Unescaped::new_unchecked(rendered.html))</article>
+            <textarea id="editor" hidden="hidden"
+                data-path=(rel.clone())
+                data-dir=(note_dir)
+                data-mtime=(mtime)
+                data-new=(new_flag)
+                data-daily-dir=(daily_dir())
+                data-start-mode=(start_mode)
+                spellcheck="false">(content)</textarea>
+            if !backlinks.is_empty() {
+                <section class="backlinks">
+                    <h2>"このノートへのリンク"</h2>
+                    <ul class="note-list">
+                        for bl in backlinks {
+                            <li><a href=(format!("/note?path={}", url_encode(&bl)))>(bl.clone())</a></li>
+                        }
+                    </ul>
+                </section>
+            }
         </div>
     }
 }

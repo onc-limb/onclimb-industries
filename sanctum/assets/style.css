@@ -201,19 +201,7 @@ a:hover { text-decoration: underline; }
 a.wikilink { color: var(--accent); font-weight: 500; }
 a.wikilink.missing { color: var(--danger); border-bottom: 1px dashed var(--danger); }
 
-/* ---------- editor ---------- */
-
-.editor-page { display: flex; flex-direction: column; height: calc(100vh - 56px); }
-
-.editor-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 12px;
-}
+/* ---------- note page (vim-style modal view/edit) ---------- */
 
 .status { font-size: 12px; color: var(--fg-muted); }
 .status.saved { color: var(--ok); }
@@ -221,17 +209,31 @@ a.wikilink.missing { color: var(--danger); border-bottom: 1px dashed var(--dange
 .status.dirty { color: var(--mark-bg); }
 .status.error { color: var(--danger); }
 
-.editor-split {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  min-height: 0;
+.mode-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: var(--bg-hover);
+  color: var(--fg-muted);
 }
+.mode-badge.insert { background: var(--accent); color: var(--bg); }
+
+/* INSERT モード: ビュー・目次・バックリンクを隠してエディタを全面に */
+.note-page.mode-insert {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 46px);
+}
+.note-page.mode-insert #view,
+.note-page.mode-insert .toc,
+.note-page.mode-insert .backlinks { display: none; }
 
 #editor {
+  flex: 1;
   width: 100%;
-  height: 100%;
+  min-height: 0;
   resize: none;
   background: var(--bg-alt);
   color: var(--fg);
@@ -244,19 +246,6 @@ a.wikilink.missing { color: var(--danger); border-bottom: 1px dashed var(--dange
   outline: none;
 }
 #editor:focus { border-color: var(--accent); }
-
-#preview {
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 4px 20px;
-  min-height: 0;
-}
-
-@media (max-width: 1100px) {
-  .editor-split { grid-template-columns: 1fr; }
-  #preview { display: none; }
-}
 
 /* ---------- lists (home / search / backlinks) ---------- */
 
