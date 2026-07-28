@@ -2,6 +2,7 @@
 name: ultron-dividend-recorder
 description: 個別株の配当金計算書・支払通知書の画像から配当実績を抽出し、リポジトリ直下の配当台帳(dividend-data/records.json。git 管理外)へ記録するスキル。画像は dividend-data/inbox/ に置き、Read ツールで読み取って {銘柄名・一株あたり配当・株数・配当金額・基準日} を抽出し、ユーザー確認のうえ決定論的スクリプト(scripts/dividend.py)経由で追記する(検算・重複検出・スキーマ検証はスクリプトが行い、Claude は合計を暗算しない)。personal-dashboard 側は環境変数 DIVIDEND_RECORDS_PATH でこの台帳を参照し、collector(dividend-annual / dividend-cumulative)が SQLite に取り込んでメトリクス・表として可視化する(必要なら `vp run collect` でスナップショット反映)。Notion で手打ち管理していた過去の配当記録の一括移行(CSV エクスポート or 貼り付け → import-csv)にも対応する。「この配当金計算書を記録して」「配当の画像を取り込んで」「今年の配当いくら？」「配当の累計を見せて」「Notion の配当記録をダッシュボードに移行して」等で、ユーザーが明示的に依頼したときだけ起動する(自動起動しない)。出力は配当実績の機械的な記録・集計であって投資助言ではない。高配当銘柄の選定・スクリーニングは ultron-high-dividend-stock-screener の領分で、本スキルは受け取った配当の実績記録に特化する。
 model: sonnet
+effort: low
 metadata:
   type: skill
   data_dir: <repo>/dividend-data

@@ -14,6 +14,8 @@ description: >-
   ユーザーが明示的に依頼したときだけ起動する(自動起動しない)。
   入力・テンプレートが固定の friday-giziroku / friday-daily-report は本スキルの対象外
   (従来どおり単体で起動する)。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   stage: 0

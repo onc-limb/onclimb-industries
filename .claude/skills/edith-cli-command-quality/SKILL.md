@@ -1,6 +1,8 @@
 ---
 name: edith-cli-command-quality
 description: Claude が実行した CLI コマンドのログ(jarvis-worklog の raw、または素の CLI トランスクリプト ~/.claude/projects)を集計し、(1)人間もよく使う Linux/Mac コマンドの品質チェック観点を「何を確認すべきか」の学習素材として提示し、(2)危険コマンド(rm -rf / dd / curl|sh 等)の出現をチェックする分析スキル(edith 系)。決定論スクリプトが頻度ランキング・アンチパターン検出・危険パターン照合を集計し、ダッシュボードプロダクト連携用の command-metrics.json(スキーマ固定)と、人間向けの学習レポート Markdown を cli-quality/ に出力する。「Claude がよく使う CLI コマンドをランキングにして」「コマンドの品質を確認して学習用にまとめて」「危険コマンドが使われてないかチェックして」「ダッシュボード用にコマンドメトリクスの JSON を出して」「先月分の CLI コマンド品質を分析して」等で、ユーザーが明示的に依頼したときだけ起動する(自動起動しない)。作業ログの収集・整理を行う jarvis-worklog とは別系統で、本スキルは収集済みログを入力にした二次分析に徹する(worklog には組み込まない)。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   persona: edith

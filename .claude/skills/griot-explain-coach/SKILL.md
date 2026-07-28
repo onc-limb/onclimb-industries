@@ -8,6 +8,8 @@ description: >-
   指摘台帳(review-log.jsonl)に蓄積し、定期的な苦手分析(フロー B)に使う。
   「この説明を添削して」「今日の説明練習の文字起こしを見て」で添削、
   「苦手分析して」「説明練習の振り返りして」で定期分析を起動。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   stage: 3

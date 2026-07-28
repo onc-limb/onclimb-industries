@@ -8,6 +8,8 @@ description: >-
   (言語化の練習が目的)。「今日の説明練習の準備」「学んだことを言語化したい」「説明ノート作りたい」
   「説明資料を作って」等で起動。既存ノートからの資料再生成にも対応。
   後段: 説明の録音・文字起こしを griot-explain-coach で添削、英語化は griot-explain-english。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   stage: 1

@@ -8,6 +8,8 @@ description: >-
   書いて/更新して」「スキルページを埋めて」「NestJS のスキル紹介を書いて」「ナレッジベースから
   スキルセット紹介文を作って」等で、ユーザーが明示的に依頼したときだけ起動する（自動起動しない）。
   ナレッジの蓄積自体は jarvis-knowledge-base、技術記事化は friday-tech-article-drafter の領分。
+model: sonnet
+effort: medium
 ---
 
 # skillset-writer — homepage スキルセット紹介文の生成

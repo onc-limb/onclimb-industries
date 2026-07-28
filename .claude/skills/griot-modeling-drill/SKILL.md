@@ -14,6 +14,8 @@ description: >-
   「今月のドメインに絡めたドリルにして」「昨日のとは別の観点で 1 問」等で、
   ユーザーが明示的に依頼したときだけ起動する（自動起動しない）。
   月次の大きな課題は griot-modeling-domain-challenge、気づきの記録・壁打ちは jarvis-modeling-notes の領分。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   data_dir: <repo>/modeling-notes/challenges/daily

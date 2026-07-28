@@ -1,6 +1,8 @@
 ---
 name: arc-reactor-architecture-review
 description: 週次のアーキテクチャレビュースキル。ベースブランチに前回レビュー以降加わった変更を起点に、コードベース全体の設計健全性（コードスメル・結合/依存・設計原則・意図の読みやすさ）をレビューする。レビュー知識の正本は onclimb-industries ルートのドメイン別知識ディレクトリ（architecture/ を主に frameworks/・testing/ 等）にあり、スキル内の各観点（perspectives/ 配下。現在は general に集約）は「どのファイルを読むか」の INDEX.md だけを持つ。観点ごとにサブエージェントが INDEX の知識を読み込んで並列レビューし、観点別レポート + サマリを projects/<name>/architecture-review/<日付>/ に保存する。ユーザーの「こういうコードは怪しい」「この原則はこう考える」等の知見は architecture/ 等に 1 テーマ 1 ファイルで蓄積し、テンプレート自体も運用で進化させる。「週次アーキテクチャレビューして」「今週ベースブランチに入った変更を設計観点でレビューして」「アーキテクチャレビューの観点に追加: 〜」「レビュー知識を分類して観点を分けて」等で、ユーザーが明示的に依頼したときだけ起動する（自動起動しない）。変更単体の機能/セキュリティ/パフォーマンスレビューは arc-reactor-code-review、蓄積負債の棚卸しは arc-reactor-tech-debt-auditor の領分。
+model: opus
+effort: high
 metadata:
   type: skill
 ---

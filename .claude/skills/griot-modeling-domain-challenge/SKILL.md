@@ -14,6 +14,8 @@ description: >-
   「先月と別のサービス形態で課題作って」「今月の課題作り直して」等で、
   ユーザーが明示的に依頼したときだけ起動する（自動起動しない）。
   毎日の小課題は griot-modeling-drill、気づきの記録・壁打ちは jarvis-modeling-notes の領分。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   data_dir: <repo>/modeling-notes/challenges/monthly

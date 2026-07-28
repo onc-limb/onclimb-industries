@@ -1,6 +1,8 @@
 ---
 name: edith-tech-selection-research
 description: ライブラリ・フレームワーク・技術の選定調査に特化したリサーチスキル。テーマ（カテゴリ or 具体候補）と要件を入力に、要件ヒアリング → WebSearch/WebFetch による候補洗い出し → 固定 7 軸（成熟度/メンテ状況/ライセンス/学習コスト/エコシステム/性能/要件適合）での評価を行い、出典 URL・取得日付きの比較表と「推奨 1 件＋次点 1 件＋見送り理由」を固定フォーマットで出力し、選定記録を tech-selection/ に永続化する。「Next.js と Remix を比較して技術選定して」「この要件に合う ORM を選定調査して」「moment.js の代替を比較表にして推奨を出して」「状態管理ライブラリのおすすめを出典付きで比較して」「前に選定した○○の記録を見せて」等で起動する。汎用 deep-research スキルとの棲み分け: deep-research は任意テーマの自由形式リサーチレポート、本スキルは技術選定専用で比較軸・ヒアリング・出力フォーマット・記録保存が固定されている。技術選定以外の調査依頼では起動しない。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   data_dir: <repo>/tech-selection

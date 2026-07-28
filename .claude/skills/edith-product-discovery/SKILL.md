@@ -1,6 +1,8 @@
 ---
 name: edith-product-discovery
 description: プロジェクト（コードベース・既存資料）を調査して、要件定義・Issue 化の前段のアイデア出しをするスキル（edith 系）。「こういう機能があったほうがいい」という機能案と「ここが課題になりそう」という課題仮説を、固定の発想レンズ（ユーザー価値 / 運用・保守 / 品質・信頼性 / 成長・差別化 / 開発体験）で多角的に発想し、根拠（file:line・資料）・想定価値・粗い規模感・確信度付きのアイデアバックログにまとめ、対話で壁打ち・選別してから projects/<project>/discovery/ に永続化する。採用されたアイデアは jarvis-issue-planner（Issue 化）への引き渡しと ToDo 台帳への収穫につなぐ。「このプロジェクトに欲しい機能のアイデア出しして」「課題になりそうなところを洗い出して」「要件定義前の壁打ちがしたい」「Issue にする前のネタ出しして」「このプロダクトの改善アイデアを提案して」「次に何を作るべきか一緒に考えて」等で、ユーザーが明示的に依頼したときだけ起動する（自動起動しない）。やることが決まった後の Issue 化は jarvis-issue-planner、証拠ベースの負債列挙は arc-reactor-tech-debt-auditor、外部市場・競合の調査は edith-competitor-market-scan の領分（本スキルはそれらの成果物を入力として使える）。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   output_dir: projects/<project>/discovery

@@ -8,6 +8,8 @@ description: >-
   確認し、モード別のワークフローで進める。「キャプチャして」「技術キャプチャ」「経験キャプチャ」
   「この経験を記録したい」「〜の技術レベルを棚卸しして」「振り返りインタビューして」等で起動する。
   作業ログの機械収集は jarvis-worklog、読書の記録は jarvis-reading-notes の領分。
+model: sonnet
+effort: medium
 ---
 
 # capture — 対話インタビューによる技術・経験の記録

@@ -2,6 +2,50 @@
 
 onclimb-industries リポジトリのプロジェクト固有ガイドライン。
 
+## モデル / effort のタスク別ルーティング
+
+タスクの種類ごとに使うモデルと effort を `.claude/agents/` に定義してある。
+**ユーザーが毎回 `/model` や `/effort` を打たなくて済むよう、下表に当てはまる作業は
+該当エージェントに委譲すること**（これは常時有効な委譲指示であり、その都度の依頼を待たない）。
+
+| 作業の種類 | エージェント | model / effort |
+|---|---|---|
+| 機械的な軽作業（件数を数える・ログ抽出・定型フォーマット・単純置換） | `quick` | haiku / low |
+| 調査（どこに何があるか・実装の把握・影響範囲・外部情報の下調べ） | `research` | sonnet / medium |
+| レビューと難所（コード/設計レビュー・原因不明のバグ究明・性能/セキュリティ検討） | `review` | opus / xhigh |
+| 文章作成（ドキュメント・報告書・記事の草案、文章整形） | `writer` | sonnet / medium |
+
+**委譲しないもの**（メインの会話で、セッション既定のモデルのまま進める）:
+
+- 実装・修正そのもの（対話しながら進める作業。委譲すると手戻りが増える）
+- ユーザーへのヒアリングが要る作業（要件確認・壁打ち・方針の相談）
+- 数ファイルを読めば済む単発の確認（委譲のオーバーヘッドの方が大きい）
+
+判断に迷う規模なら委譲せずメインで進めてよい。逆に、レビュー・調査を頼まれたのに
+メインで抱え込むのは避ける（そのために定義してある）。
+
+**セッション全体を特定のモデルで動かしたいとき**は委譲ではなく起動時に指定する:
+`claude --agent review` のように起動すると、メインスレッド自体がその model / effort になる。
+
+定義を増やす・しきい値を変えるときは `.claude/agents/*.md` の frontmatter
+（`model`: sonnet/opus/haiku/fable/フルID/inherit、`effort`: low/medium/high/xhigh/max）を編集する。
+
+### スキル側の指定
+
+`.claude/skills/*/SKILL.md` の frontmatter も `model` と `effort` を持てる（全スキルに設定済み）。
+`/<skill-name>` で起動した時点でそのモデル・effort に切り替わるので、スキルとして
+確立した作業についてはエージェント委譲より**こちらが優先経路**。
+
+| 用途 | model / effort | 例 |
+|---|---|---|
+| 設計・レビュー・監査・計画 | opus / high | arc-reactor 系のレビュー/設計、jarvis-issue-planner、ultron-contract-review-assistant |
+| 調査・生成・記録の主力 | sonnet / medium | jarvis-worklog、friday 系、edith 系、griot 系 |
+| 定型の記録・台帳操作 | sonnet / low | jarvis-todo-management、ultron-dividend-recorder、vision-people-memory |
+
+スキルの `effort` は `low` / `medium` / `high` / `max`（または整数）。`xhigh` はエージェント側のみ。
+
+**新しいスキルを作るときは frontmatter に `model` と `effort` を必ず書く**（上表の基準に合わせる）。
+
 ## スキル
 
 スキルは `.claude/skills/` 配下に置き、**分類プレフィックス + スキル名**（例: `jarvis-worklog`）で命名する。
@@ -21,7 +65,8 @@ onclimb-industries リポジトリのプロジェクト固有ガイドライン�
 2. **その分類の persona ファイル（`personas/<prefix>.md`）を必ず参照**し、そこに書かれた
    共通ルールに従って SKILL.md・スクリプト・出力を設計する。
 3. ディレクトリ名は `<prefix>-<skill-name>`、`SKILL.md` の `name:` フロントマターも同じ値にする。
-4. 新しい分類が必要な場合は、先に `personas/<prefix>.md` を作成して共通ルールを定義し、
+4. frontmatter に `model` と `effort` を書く（基準は「モデル / effort のタスク別ルーティング」）。
+5. 新しい分類が必要な場合は、先に `personas/<prefix>.md` を作成して共通ルールを定義し、
    `.claude/skills/README.md` のプレフィックス一覧も更新する。
 
 ### スキルのデータ置き場と依存の方向

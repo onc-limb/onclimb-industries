@@ -1,6 +1,8 @@
 ---
 name: arc-reactor-code-review
 description: 観点別コードレビュースキル。GitHub PR に限らず、ローカルの変更差分・特定の機能/モジュール・プロジェクト全体のいずれのスコープでもレビューできる。機能(correctness) / セキュリティ / パフォーマンスの3観点を、観点ごとに分けて(全部 or 指定観点だけ)適用し、重要度ラベル([must]/[imo]/[nit]/[ask])と file:line 付きで指摘する。対象リポジトリの CLAUDE.md / linter 設定を根拠に引用する。「このプロジェクト全体をレビューして」「認証機能をセキュリティ観点で見て」「PR #123 をレビューして」「この機能のパフォーマンスを見て」等で起動。承認前に PR へ書き込まない。コミット前の自分の差分を素早く検品したいだけなら組み込みの /code-review を案内する。アーキテクチャ・設計全体のレビュー(コードスメル・依存関係・設計原則・意図の読みやすさ)は arc-reactor-architecture-review の領分。
+model: opus
+effort: high
 metadata:
   type: skill
 ---

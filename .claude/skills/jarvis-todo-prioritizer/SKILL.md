@@ -1,6 +1,8 @@
 ---
 name: jarvis-todo-prioritizer
 description: ToDo 台帳(todo-data/todos.json)のタスクに、プロジェクトへの影響度(impact 1-5)と緊急度(urgency 1-5)を根拠付きで評価・記録する優先順位づけスキル(jarvis 系)。jarvis-todo-management と連携し、評価の材料を 3 系統 — ①プロジェクトの実態(台帳の due/滞留・リポジトリや成果物の現状・worklog digest)、②世間の情報(外部期限・EOL・セキュリティ・制度変更など。外部要因が絡むタスクのみ WebSearch し出典 URL+取得日を付ける)、③ユーザーとの壁打ち(2〜3 件ずつ仮評価を提示し現場感で上書き) — から集め、ユーザーが確定した評価だけを `todo.py prioritize` で台帳に記録する(スコア計算・並べ替えは todo.py --sort priority が行い、Claude は暗算しない)。評価は impact×urgency の象限で着手順の目安に変換して提案する(決定はユーザー)。「ToDo の優先順位つけて」「どれからやるべき？」「このタスクの優先度を評価して」「優先度を見直して」「今のタスクを影響度と緊急度で整理して」等で、ユーザーが明示的に依頼したときだけ起動する(自動起動しない)。台帳への登録・分割・状態管理・同期は jarvis-todo-management の領分で、本スキルは優先度の評価と記録に特化する。評価は判断材料の整理であって、着手順の強制ではない。
+model: sonnet
+effort: low
 metadata:
   type: skill
   data_dir: <repo>/todo-data

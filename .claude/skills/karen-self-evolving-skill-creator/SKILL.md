@@ -1,6 +1,8 @@
 ---
 name: karen-self-evolving-skill-creator
 description: Create new Claude skills that ship with a built-in self-evolution pipeline. Generated skills log every pipeline run (instruction, reasoning, output, feedback, completion state) into their own logs/ directory and rewrite their own SKILL.md / scripts when accumulated logs cross a configurable threshold (default 10 runs). Use whenever the user wants a skill that learns from usage — "adaptive", "self-improving", "auto-tuning", "self-evolving" — or describes a skill that should remember how it was used and improve itself. The meta-skill applies the same pipeline to itself, so improvements to scaffolding compound over time.
+model: opus
+effort: high
 metadata:
   type: skill
   has_self_evolution_pipeline: true

@@ -6,6 +6,7 @@ description: >-
   (capture-data/tech/)を入力に、技術領域ごとに集約した Obsidian 形式のナレッジベース(vault)を
   生成・更新するスキル。タグ・[[リンク]]入りの Markdown ノートを技術別に作る。
   「ナレッジベース作って」「知見をまとめて」「vault 更新して」「技術ノート作って」等で起動する。
+effort: medium
 ---
 
 # knowledge-base — 技術ナレッジベース生成スキル

@@ -17,6 +17,8 @@ description: >-
   「実行者がそのままなぞって作業を完了できる手順」が主役のドキュメントに特化する。
   環境構築エラーの診断・修復は arc-reactor-env-doctor の領分(本スキルはドキュメント生成起点。
   env-doctor が作る README 修正 diff の反映先を新規に整備する用途では併用できる)。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   stage: 1

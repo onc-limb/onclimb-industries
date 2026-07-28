@@ -13,6 +13,8 @@ description: >-
   「モデリングノート一覧」等で、ユーザーが明示的に依頼したときだけ起動する（自動起動しない）。
   本の読書メモ全般は jarvis-reading-notes、実プロジェクトの DB/API 設計作業そのものは arc-reactor 系の領分だが、
   そこで出たモデリングの思考・教訓を残したいときは本スキルに記録してよい（出典を明記）。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   data_dir: <repo>/modeling-notes

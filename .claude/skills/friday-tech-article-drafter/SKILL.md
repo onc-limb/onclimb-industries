@@ -12,6 +12,8 @@ description: >-
   friday-doc-planner が作成した doc brief(doc-briefs/<日付>-<slug>.md)を入力に
   「この brief で記事を書いて」と依頼された場合は 2 段構成の Stage 1 として起動し、
   ネタ選定・重複する確認を省略して構成提案(骨組み)から始める(マスキング・公開前チェックは省略しない)。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   pairs_with: jarvis-worklog, jarvis-knowledge-base

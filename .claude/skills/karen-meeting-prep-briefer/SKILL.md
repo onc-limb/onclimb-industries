@@ -1,6 +1,8 @@
 ---
 name: karen-meeting-prep-briefer
 description: 打合せ・商談・定例の「事前」に、議題と関連資料から論点整理済みの事前ブリーフを 1 本生成するスキル。friday-giziroku（会議の事後＝議事録）と対になる会議前スキルで、過去議事録（giziroku/minutes/）や jarvis 系の記録（report-record/ 等）を下調べの入力として横断し、会議の目的 / 決めたいこと / 論点ごとの現状・選択肢・自分のスタンス案 / 想定質問と回答案 / 前回からの持ち越し / 確認したいこと の固定フォーマットで出力する。「明日の打合せのブリーフ作って」「この議題で事前準備したい。論点整理して」「次の定例の前に前回の持ち越しを洗い出して」「〇〇さんとの MTG、想定質問と回答案を用意して」「来週の商談の下調べして」等で、ユーザーが明示的に依頼したときだけ起動する（自動起動しない）。会議後の「議事録にして」は friday-giziroku、作業の記録・整理は jarvis 系の領分で、本スキルは扱わない。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   data_dir: <repo>/giziroku/briefs

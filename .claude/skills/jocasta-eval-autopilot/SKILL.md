@@ -1,6 +1,8 @@
 ---
 name: jocasta-eval-autopilot
 description: LLM アプリケーション評価の完全自動改善モード（jocasta 系のオーケストレータ）。jocasta-eval-designer / jocasta-eval-runner / jocasta-eval-improver を auto モードで連結し、測定 → 原因切り分け → 改善適用（理想回答・評価基準の改訂まで含む）→ 再測定のループを、停止条件（pass 率目標達成・上限イテレーション・根拠付き改善案の枯渇）まで自動で回す。壁打ちは省略するが、事実ベースの原則は維持: 根拠（run 実データ・Web 一次情報）の揃った変更のみ自動適用し、（推測）由来の変更は保留リストに分離してユーザー判断へ回す。全変更を revision_notes / improvements / autopilot サマリに記録し、終了時にレビュー用サマリ（llm-eval-data/<app>/autopilot/<日時>-summary.md）を提示する。「全自動で改善して」「オートパイロットで評価改善ループを回して」「自動で精度を上げるところまでやって」「理想回答の見直しも含めて自動で N 回回して」等、ユーザーが自動実行を明示的に指示したときだけ起動する（自動起動しない）。個別ステップを対話で進めたい場合は designer / runner / improver を単体で使う。
+model: sonnet
+effort: medium
 metadata:
   type: skill
   data_dir: <repo>/llm-eval-data

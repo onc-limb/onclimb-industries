@@ -8,6 +8,7 @@ description: >-
   日本語で説明練習した内容を英語でも発声して英語学習を兼ねるのが目的。
   「これを英語でも練習したい」「英語版の資料とスクリプト作って」等で起動。
 model: sonnet
+effort: medium
 metadata:
   type: skill
   stage: 4
