@@ -1,6 +1,7 @@
 ---
 name: jocasta-eval-designer
-description: LLM アプリケーション評価の設計スキル（jocasta 系の定義担当）。評価したい対象アプリ（会話・検索型の LLM アプリ）を登録し、対話で「理想回答（こう答えてほしい）」「NG 回答（こうは答えてほしくない）」を洗い出して、評価データセット（llm-eval-data/<app>/config.json + dataset/cases.json）を作成・改訂する。ケースごとに ideal_points / ng_points / 決定的チェック（must_include 等）/ tags を定義し、アダプタ（command / http / manual）でアプリへの接続方法も設定する。「<アプリ> の評価環境を作って」「LLM の評価データセットを作りたい」「理想回答を一緒に洗い出して」「この Q&A サービスを検証できるようにして」「評価ケースを追加/見直しして」等で起動する。評価の実行は jocasta-eval-runner、結果を見た改善壁打ちは jocasta-eval-improver の領分。improver で「理想回答側を直す」と決まった改訂の適用先も本スキル。
+description: >-
+  LLM アプリケーション評価の設計担当(jocasta 系)。評価対象アプリを登録し、対話で理想回答(こう答えてほしい)と NG 回答(こうは答えてほしくない)を洗い出して評価データセット(config.json + cases.json)を作成・改訂する。ケースごとに ideal_points / ng_points / 決定的チェック / tags を定義し、アダプタ(command / http / manual)で接続方法も設定する。「評価環境を作って」「LLM の評価データセットを作りたい」「理想回答を一緒に洗い出して」「評価ケースを追加/見直しして」等で起動。評価の実行は jocasta-eval-runner、結果を見た改善壁打ちは jocasta-eval-improver の領分。
 model: opus
 effort: high
 metadata:

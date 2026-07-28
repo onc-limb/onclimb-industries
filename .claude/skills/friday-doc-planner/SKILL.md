@@ -1,19 +1,7 @@
 ---
 name: friday-doc-planner
 description: >-
-  ドキュメント作成の事前準備スキル(friday 系 2 段構成の Stage 0)。実際にドキュメントを書き始める前に、
-  対話で「目的(読者の行動レベルまで深掘り) × 対象読者」を確定し、そこから文書の型(説明型/説得型/報告型)と
-  読まれ方(辞書的/読み物的)を導出して、テーマの設定・分解(主張 / 必要な情報 / 流れ を
-  「なぜ・何を・どうやって」の 3 観点で検査)、テーマごとの情報源の確定までを行い、
-  ドキュメント企画書(doc brief)を doc-briefs/ に 1 ファイル生成して、種類に応じた後段の生成スキル
-  (friday-design-doc-generator / friday-proposal-generator / friday-tech-article-drafter /
-  friday-procedure-doc-generator 等)へ引き渡す。
-  骨組み(見出し構成)と本文は書かない(Stage 1 の領分)。
-  「ドキュメントを作りたいので整理から手伝って」「どんなドキュメントにするか壁打ちして」
-  「ドキュメントの企画・構成を先に決めたい」「何をどこに書くか整理してから書き始めたい」等で、
-  ユーザーが明示的に依頼したときだけ起動する(自動起動しない)。
-  入力・テンプレートが固定の friday-giziroku / friday-daily-report は本スキルの対象外
-  (従来どおり単体で起動する)。
+  ドキュメントを書き始める前の企画スキル(2 段構成の Stage 0)。対話で目的(読者の行動レベルまで深掘り) × 対象読者を確定し、そこから文書の型(説明型/説得型/報告型)と読まれ方を導出して、テーマの分解(主張 / 必要な情報 / 流れ)と情報源の確定まで行い、doc brief を doc-briefs/ に 1 本生成して後段の生成スキル(design-doc-generator / proposal-generator / tech-article-drafter / procedure-doc-generator)へ引き渡す。骨組みと本文は書かない。「ドキュメントを作りたいので整理から手伝って」「どんなドキュメントにするか壁打ちして」「何をどこに書くか整理してから書き始めたい」等の明示依頼時のみ起動(自動起動しない)。入力が固定の friday-giziroku / friday-daily-report は対象外。
 model: sonnet
 effort: medium
 metadata:

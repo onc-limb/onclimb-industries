@@ -1,6 +1,7 @@
 ---
 name: jocasta-eval-runner
-description: LLM アプリケーションの評価実行スキル（jocasta 系の測定担当）。jocasta-eval-designer で定義したデータセット（理想回答の要点 / NG 回答 / 決定的チェック）を入力に、アダプタ（command / http / manual）経由で対象アプリの回答を収集し、決定的チェック + LLM-as-a-judge（correctness / completeness / ng_compliance / relevancy / faithfulness の RAGAS 風メトリクス）で採点して、run 単位の評価レポート（llm-eval-data/<app>/runs/<run-id>/report.md）を生成する。run は不変で、改善後は新 run を取って compare で差分を見る。「<アプリ> の評価を回して」「eval を実行して」「回答を収集して採点して」「評価レポートを出して」「前回の run と比較して」等で起動する。データセットの作成・改訂は jocasta-eval-designer、レポートを元にした壁打ち・改善案出しは jocasta-eval-improver の領分。
+description: >-
+  LLM アプリケーションの評価実行担当(jocasta 系の測定担当)。designer で定義したデータセットを入力に、アダプタ(command / http / manual)経由で対象アプリの回答を収集し、決定的チェック + LLM-as-a-judge(correctness / completeness / ng_compliance / relevancy / faithfulness)で採点して run 単位のレポートを生成する。run は不変で、改善後は新しい run を取って compare で差分を見る。「評価を回して」「eval を実行して」「回答を収集して採点して」「前回の run と比較して」等で起動。データセットの作成・改訂は jocasta-eval-designer、改善案出しは jocasta-eval-improver の領分。
 model: sonnet
 effort: medium
 metadata:

@@ -1,6 +1,7 @@
 ---
 name: jarvis-issue-planner
-description: 自己進化開発ループの起点となる開発 Issue(実装計画)を作成するスキル。対象プロジェクト/GitHub リポジトリと「やりたいこと」を受け取り、既存コードを調査した上で対話形式でゴール・スコープ・受け入れ条件を確定し、粒度大きめだが明確にゴールのある Issue を Markdown で生成する。希望があれば gh CLI で GitHub Issue にも登録する。「Issue を作って」「実装計画を立てて」「開発ループに投げるタスクを作って」「〜をやりたいので Issue 化して」等で起動。
+description: >-
+  自己進化開発ループの起点となる開発 Issue(実装計画)を作成する。対象プロジェクト/GitHub リポジトリと「やりたいこと」を受け取り、既存コードを調査したうえで対話でゴール・スコープ・受け入れ条件を確定し、粒度大きめだが明確にゴールのある Issue を Markdown で生成する(希望があれば gh CLI で GitHub Issue 登録まで)。「Issue を作って」「実装計画を立てて」「開発ループに投げるタスクを作って」「〜をやりたいので Issue 化して」等で起動。
 model: opus
 effort: high
 metadata:
