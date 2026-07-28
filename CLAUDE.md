@@ -46,6 +46,20 @@ onclimb-industries リポジトリのプロジェクト固有ガイドライン�
 
 **新しいスキルを作るときは frontmatter に `model` と `effort` を必ず書く**（上表の基準に合わせる）。
 
+### スキル一覧の予算（description が Claude に届くための設定）
+
+Claude に渡されるスキル一覧には文字数予算があり（`skillListingBudgetFraction`、既定は
+コンテキストウィンドウの 1%）、超過分は `- <name>` だけになって **description が落ちる**。
+description は「いつこのスキルを使うか」の判断材料なので、落ちたスキルは自動起動されなくなる。
+落とす順番は使用頻度スコア（`usageCount × 0.5^(経過日数/7)`）が低い順で、使ったことのない
+スキルから消える。当リポジトリは 60 スキル・description 合計 32,000 字あり既定 1% では
+収まらないため、`.claude/settings.json` で 5% に上げてある。
+
+- スキルを増やしたら、この予算に収まっているか（新しいスキルが名前だけになっていないか）を確認する。
+- description は冗長にしない。長くなるほど他のスキルの description を押し出す。
+- frontmatter の YAML が壊れていても description は落ちる（`description:` の値に半角
+  `: ` を含めない。含むなら `>-` の折り畳みブロックにする）。
+
 ## スキル
 
 スキルは `.claude/skills/` 配下に置き、**分類プレフィックス + スキル名**（例: `jarvis-worklog`）で命名する。
