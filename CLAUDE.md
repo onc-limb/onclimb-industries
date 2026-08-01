@@ -38,9 +38,9 @@ onclimb-industries リポジトリのプロジェクト固有ガイドライン�
 
 | 用途 | model / effort | 例 |
 |---|---|---|
-| 設計・レビュー・監査・計画 | opus / high | arc-reactor 系のレビュー/設計、jarvis-issue-planner、ultron-contract-review-assistant |
-| 調査・生成・記録の主力 | sonnet / medium | jarvis-worklog、friday 系、edith 系、griot 系 |
-| 定型の記録・台帳操作 | sonnet / low | jarvis-todo-management、ultron-dividend-recorder、vision-people-memory |
+| 設計・レビュー・監査・計画 | opus / high | arc-reactor 系のレビュー/設計、jarvis-issue-planner |
+| 調査・生成・記録の主力 | sonnet / medium | jarvis-worklog、friday 系、edith 系 |
+| 定型の記録・台帳操作 | sonnet / low | jarvis-todo-management |
 
 スキルの `effort` は `low` / `medium` / `high` / `max`（または整数）。`xhigh` はエージェント側のみ。
 
@@ -52,7 +52,7 @@ Claude に渡されるスキル一覧には文字数予算があり（`skillList
 コンテキストウィンドウの 1%）、超過分は `- <name>` だけになって **description が落ちる**。
 description は「いつこのスキルを使うか」の判断材料なので、落ちたスキルは自動起動されなくなる。
 落とす順番は使用頻度スコア（`usageCount × 0.5^(経過日数/7)`）が低い順で、使ったことのない
-スキルから消える。当リポジトリは 60 スキル・description 合計 約19,000 字。既定 1%
+スキルから消える。当リポジトリは 39 スキル・description 合計 約12,500 字。既定 1%
 （200k コンテキストで 8,000 字）では収まらないため、`.claude/settings.json` で 5% に上げてある。
 
 **description の書き方**（全スキルこの形に統一済み。目安 200〜350 字）:
@@ -96,7 +96,7 @@ frontmatter ごと読めなくなり、`#` を含むとそこ以降がコメン�
 スキル群は当リポジトリ内で自己完結させ、`projects/` 配下のプロジェクトに依存させない。
 
 - **スキルは `projects/` 内のプロジェクトにデータを保存・参照しない**。スキルのデータは
-  当リポジトリ直下の git 管理外ディレクトリ（例: `dividend-data/`, `budget-data/`）に置き、
+  当リポジトリ直下の git 管理外ディレクトリ（例: `worklog-data/`, `todo-data/`）に置き、
   `.gitignore` に理由コメント付きで追加する（既存エントリの書式に合わせる）。
 - プロジェクト側がスキルのデータを使いたい場合は、**プロジェクト側に取得元パスの設定手段**
   （環境変数・設定ファイル等）を実装し、そこから読み込ませる。
@@ -104,8 +104,8 @@ frontmatter ごと読めなくなり、`#` を含むとそこ以降がコメン�
   （プロジェクトが無い・壊れている状態でもスキル単体で完結して動くこと）。
 - データのスキーマをプロジェクト側の型と揃える場合は、SKILL.md にその対応関係と
   「変更時は両側を同時に変える」旨を明記する。
-- 例: `ultron-dividend-recorder` は `dividend-data/records.json` に記録し、
-  personal-dashboard 側は環境変数 `DIVIDEND_RECORDS_PATH` でそれを取り込む。
+- 例: `jarvis-todo-management` は `todo-data/todos.json` に記録し、外部から使う場合は
+  環境変数 `TODO_DATA` で取得元を指定して取り込む。
 
 ### スキルフィードバックの運用
 
@@ -205,14 +205,3 @@ private リポジトリ（詳細は同リポジトリの `README.md`）。`proje
 （稼働中のチェックアウトを対象にできないため分離されている）。iron-legion 本体への
 通常の作業・修正・参照は必ず `projects/iron-legion/` 側で行い、`iron-legion-self/` を
 直接編集しない。また `extremis/sentinel/` は人間のみが変更・ビルドする領域。
-
-## study ディレクトリ（AI がコードを書かない学習用の場）
-
-`study/` は、ユーザーが勉強のために **AI（Claude）に絶対にコードを書かせない** ディレクトリ。
-
-- **`study/` 配下ではコードを一切書かない・編集しない**（新規作成も含む）。ユーザー自身が書く。
-- ユーザーからの質問には **言葉での解説・回答のみ** で応じる。方針・ヒント・間違いの指摘は
-  日本語の説明で行い、コードそのもの（スニペット含む）は提示しない。
-- 技術的担保として、PreToolUse フック `.claude/hooks/block-study-writes.py` が
-  `Write`/`Edit`/`MultiEdit`/`NotebookEdit` によるこのディレクトリ配下への書き込みを拒否する。
-- `study/` は `.gitignore` で git 管理外。

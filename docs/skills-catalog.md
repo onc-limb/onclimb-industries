@@ -26,7 +26,6 @@
 | `jarvis-todo-management` | プロジェクト別タスク台帳の運用。登録・分割、作業区切りでの突き合わせ、議事録等からの収穫、棚卸し、Google Tasks 同期 | 「ToDo 追加」「棚卸しして」「議事録から ToDo 拾って」 | `todo-data/todos.json` の更新（`todo.py` 経由） |
 | `jarvis-todo-prioritizer` | 台帳のタスクに影響度×緊急度を根拠付きで評価・記録し、着手順の目安を提案 | 「ToDo の優先順位つけて」「どれからやるべき？」 | 台帳への priority 記録 + 着手順の提案 |
 | `jarvis-issue-planner` | 既存コードを調査し、対話でゴール・スコープ・受け入れ条件を確定して開発 Issue を作成 | 「〜をやりたいので Issue 化して」「実装計画を立てて」 | Issue Markdown（希望すれば gh で GitHub Issue 登録） |
-| `jarvis-reading-notes` | 読書の気づき・疑問と回答を 1 冊 = 1 ノートに時系列で記録。再開サポート・読了時まとめ | 「この本のここ気になるからメモして」「この本どこまで読んだっけ」 | `reading-notes/books/<slug>.md` |
 
 ## friday — 共有ドキュメント系
 
@@ -72,51 +71,15 @@ Web 探索を伴うリサーチ。すべての事実主張に出典 URL・取得
 | スキル | 何をするか | 指示の例 | 成果物（出力先） |
 |--------|-----------|----------|------------------|
 | `edith-tech-selection-research` | 技術選定調査。固定 7 軸（成熟度 / メンテ / ライセンス等）で候補を比較し推奨 + 次点を出す | 「Next.js と Remix を比較して技術選定して」 | `tech-selection/` の比較表 + 選定記録 |
-| `edith-freelance-rate-research` | フリーランス（SES・準委任）の単価相場を複数ソース横断で調査。交渉材料づくり | 「Go + AWS で経験 5 年、東京だと単価いくら？」 | 相場レンジ + 根拠付きレポート（免責付き） |
 | `edith-competitor-market-scan` | 対象ドメインの競合・機能・価格・トレンドをスキャン | 「この案件の周辺市場をスキャンして」 | `market-scan/` の競合一覧 + トレンド要約レポート |
 | `edith-product-discovery` | プロジェクトを調査し、要件定義前の機能案・課題仮説を 5 つの発想レンズで出して壁打ち・選別 | 「このプロダクトの改善アイデアを提案して」 | `projects/<project>/discovery/` のアイデアバックログ |
-
-## ultron — 事務・金融・資産系
-
-金額計算は必ず決定論的スクリプトが行い、Claude は暗算しない。出力は情報整理であって助言ではない。
-
-| スキル | 何をするか | 指示の例 | 成果物（出力先） |
-|--------|-----------|----------|------------------|
-| `ultron-invoice-builder` | 稼働時間・単価から適格請求書（インボイス）要件を満たす月次請求書を作成。税・源泉はスクリプト検算 | 「今月の請求書を作って」「6 月分の稼働 160.5 時間で請求書にして」 | `invoice-data/invoices/` の請求書 + 内訳表 |
-| `ultron-timesheet-aggregator` | worklog・Google カレンダーから案件別・日別の稼働時間サマリを集計（請求書の入力になる） | 「今月の稼働時間を集計して」 | `timesheet-data/` の月次 JSON + 稼働サマリ |
-| `ultron-tax-prep-organizer` | 銀行 / クレカ明細等を勘定科目別集計 + 要確認リストに整理（青色申告の準備） | 「確定申告用に経費を整理して」 | `tax-data/` の科目別サマリ（Markdown + JSON） |
-| `ultron-contract-review-assistant` | 業務委託・SES 契約書の要注意条項洗い出しと先方への確認事項整理（法的助言ではない） | 「この契約書をレビューして」 | 要注意条項表 + 確認文例のレポート |
-| `ultron-personal-budget-manager` | 個人の家計管理。レシート画像・Gmail の領収書メールから明細を取り込み、月次収支を集計 | 「今月の家計をまとめて」「このレシート読み込んで」 | `budget-data/` の月次エントリ + 収支集計 |
-| `ultron-family-budget-manager` | 夫婦の共同支出（食費中心）のレシートを記録し、割り勘精算用の月次集計を作る | 「レシート集計して」「割り勘用の集計出して」 | `shared-expense-data/` の transactions.jsonl + summary.md |
-| `ultron-dividend-recorder` | 配当金計算書の画像から配当実績を抽出し、台帳へ記録・集計（personal-dashboard が参照） | 「この配当金計算書を記録して」「今年の配当いくら？」 | `dividend-data/records.json` の配当台帳 |
-| `ultron-high-dividend-stock-screener` | 日本の高配当株（利回り 4% 以上 + 健全性フィルタ）をスクリーニングし候補リスト化。続きから再開可 | 「高配当株のおすすめをリストにして」 | 候補リスト + 調査台帳（免責・レビュー付き） |
-
-## griot — 練習・コーチング系
-
-自分が話して伝える力を鍛える個人練習・コーチング。聞き手は自分自身。
-説明練習は prep（Step 1: 準備）→ 自分で口頭説明・録音（Step 2）→ coach（Step 3: 添削）→
-english（Step 4: 英語化）のパイプラインで回す。データはすべて `explain-practice-data/`（git 管理外）。
-
-| スキル | 何をするか | 指示の例 | 成果物（出力先） |
-|--------|-----------|----------|------------------|
-| `griot-explain-prep` | その日学んだことを壁打ちで言語化（Claude は代筆せず不足・曖昧を指摘）し、固定テンプレのノートと「見ながら話す」1 枚 HTML 資料を生成 | 「今日の説明練習の準備」「学んだことを言語化したい」 | `explain-practice-data/sessions/<日付>-<slug>/` の note.md + deck.html |
-| `griot-explain-coach` | 口頭説明の文字起こしを、毎回インプットする想定聞き手（ペルソナ）に伝わるかの観点で添削。指摘は固定カテゴリで台帳に蓄積し、定期的に苦手傾向を分析 | 「この説明を添削して」「苦手分析して」 | review.md + `review-log.jsonl`（指摘台帳）+ 月次分析レポート |
-| `griot-explain-english` | 練習した説明の英語版資料と音読用の口語スクリプト（対訳・キーフレーズ・発音注意付き）を生成。英語学習を兼ねる | 「これを英語でも練習したい」 | 同セッション `en/` の deck-en.html + script-en.md |
 
 ## karen — 一時利用・汎用系
 
 | スキル | 何をするか | 指示の例 | 成果物（出力先） |
 |--------|-----------|----------|------------------|
 | `karen-problem-essence-organizer` | 課題発見→整理→解決定義→手段検討の 4 フェーズで思考整理。手段先行を批判的に指摘 | 「思考を整理したい」「目的ってなんだっけ」 | 自分用 Markdown + クライアント向け HTML |
-| `karen-learning-roadmap` | 学習ロードマップの設計と進捗レビュー。達成基準付きマイルストーン + 週次計画 | 「AWS SAA を 3 ヶ月で取りたい、学習計画を立てて」 | `learning-roadmaps/` のロードマップ Markdown |
 | `karen-meeting-prep-briefer` | 会議「前」の事前ブリーフ。過去議事録・記録を横断し、論点・スタンス案・想定質問を整理 | 「明日の打合せのブリーフ作って」 | 論点整理済み事前ブリーフ（固定フォーマット） |
-| `karen-self-evolving-skill-creator` | 自己進化パイプライン（実行ログ蓄積→SKILL.md 自己書き換え）付きの新スキルを生成するメタスキル | 「使うほど賢くなるスキルを作って」 | 新スキル一式（`.claude/skills/` 配下） |
-
-## vision — プライベート・人間関係系
-
-| スキル | 何をするか | 指示の例 | 成果物（出力先） |
-|--------|-----------|----------|------------------|
-| `vision-people-memory` | 雑談・家族との会話の文字起こしから、人物ごとの話題・近況・好みを 1 人 = 1 ノートに蓄積 | 「この雑談を〇〇さんのメモに追記して」「〇〇さんノート見せて」 | 人物ノート（読み手は自分だけ） |
 
 ## 典型的なスキルの連携
 
@@ -125,7 +88,5 @@ english（Step 4: 英語化）のパイプラインで回す。データはす�
 - **日次報告**: `jarvis-worklog`（ログ整理）→ `jarvis-record`（一次記録）→ `friday-daily-report`（報告スライド）
 - **ナレッジ・記事化**: `jarvis-worklog`（tech digest）→ `jarvis-knowledge-base`（vault）→ `friday-tech-article-drafter`（公開記事）
 - **自由形式ドキュメント**: `friday-doc-planner`（企画）→ `friday-design-doc-generator` / `friday-proposal-generator` / `friday-tech-article-drafter` / `friday-procedure-doc-generator`（生成）
-- **請求**: `ultron-timesheet-aggregator`（稼働集計）→ `ultron-invoice-builder`（請求書）
 - **開発ループ**: `edith-product-discovery`（アイデア出し）→ `jarvis-issue-planner`（Issue 化）
 - **ToDo**: 各スキル・議事録・調査から `jarvis-todo-management` が収穫 → `jarvis-todo-prioritizer` が優先度付け
-- **説明練習**: `griot-explain-prep`（言語化 + 資料）→ 口頭説明・録音（自分）→ `griot-explain-coach`（添削・苦手分析）→ `griot-explain-english`（英語化）

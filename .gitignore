@@ -14,37 +14,11 @@
 /report-record/
 /report-deck/
 
-# high-dividend-stock-screener: 調査済み台帳・生成リスト・EDINET キャッシュ（機密/再配布不可を含みうるため追跡しない）
-/stock-data/
-
 # tech-article-drafter: 記事ドラフトと NG ワード辞書（マスキング前の機密・実名を含みうるため追跡しない）
 /articles/
 
-# invoice-builder: 請求書・取引先設定（取引先実名・単価・口座情報を含むため追跡しない）
-/invoice-data/
-
 # todo-management: タスク台帳・変更ログ（個人の作業内容・機密を含みうるため追跡しない）
 /todo-data/
-
-# shared-expense-tracker: 共同支出のレシート画像・取引記録（世帯の金銭情報のため追跡しない）
-/shared-expense-data/
-
-# timesheet-aggregator: 稼働エントリ・稼働サマリ（案件情報を含みうるため追跡しない）
-/timesheet-data/
-
-# tax-prep-organizer: 取引データ・科目別集計（個人の金銭情報を含むため追跡しない）
-/tax-data/
-
-# household-budget-manager: 家計エントリ・固定費/収入設定・レシート・月次レポート（個人の金銭情報のため追跡しない）
-/budget-data/
-
-# dividend-recorder: 配当実績台帳・配当書類の画像（個人の金銭情報のため追跡しない）
-# 末尾スラッシュ無し: Google Drive へのシンボリックリンクのため（ディレクトリ限定だとマッチしない）
-/dividend-data
-
-# portfolio-analyzer: 証券口座の保有CSV・配当履歴CSV・スナップショット・分析レポート
-# （証券口座の保有銘柄・取得単価・損益など個人資産情報を含むため追跡しない）
-/portfolio-data/
 
 # proposal-generator: 提案書・見積ドラフト（クライアント名・金額を含むため追跡しない）
 /proposals/
@@ -55,35 +29,14 @@
 # tech-selection-research: 技術選定の記録（案件要件を含みうるため追跡しない）
 /tech-selection/
 
-# learning-roadmap: 学習ロードマップ（個人の学習記録のため追跡しない）
-/learning-roadmaps/
-
-# people-memory: 人物ごとの会話記録・好みメモ（人間関係・家族の機密のため追跡しない）
-/people-memory/
-
-# reading-notes: 読書メモ台帳（個人の学習・思考の記録のため追跡しない）
-/reading-notes/
-
 # doc-planner: ドキュメント企画書 doc brief（クライアント名・案件情報を含みうるため追跡しない）
 /doc-briefs/
-
-# modeling-notes: モデリング思考のノート台帳（個人の思考の記録・案件由来の文脈を含みうるため追跡しない）
-/modeling-notes/
-
-# explain-practice: 説明練習のノート・資料・文字起こし・添削記録（業務情報を含みうるため追跡しない）
-/explain-practice-data/
 
 # capture: 対話キャプチャの技術・経験ノート（omni-archive から移行。個人の経験・感情の記録のため追跡しない）
 /capture-data/
 
-# study: 学習用に AI がコードを書かないディレクトリ（個人の学習・試行錯誤のため追跡しない）
-/study/
-
 # skillset-writer: homepage スキルセット紹介の下書き・候補リスト（公開前の自己評価・案件情報を含みうるため追跡しない）
 /skillset-draft/
-
-# cli-command-quality: CLI コマンド品質分析の出力（私的パス・危険コマンド例を含みうるため追跡しない）
-/cli-quality/
 
 # llm-eval: 対象アプリの評価データセット・回答・スコア・改善記録（案件のプロンプト・回答実データを含みうるため追跡しない）
 /llm-eval-data/

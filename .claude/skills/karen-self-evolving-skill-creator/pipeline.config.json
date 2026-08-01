@@ -1,6 +1,0 @@
-{
-  "evolution_threshold": 10,
-  "completion_states": ["success", "failure", "unknown", "error"],
-  "recurrence_window": 3,
-  "auto_apply": true
-}

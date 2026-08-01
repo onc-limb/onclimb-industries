@@ -45,7 +45,6 @@
 | jarvis-todo-management | ピン sonnet | 台帳操作はスクリプト。マッチング・分割提案は軽い判断 |
 | jarvis-todo-prioritizer | 継承（opus 以上推奨） | 影響度・緊急度の判断と壁打ちが本体。外部期限の裏取り検索は sonnet 委任可。スコア計算・並べ替えはスクリプト |
 | jarvis-issue-planner | 継承（opus 以上推奨） | スコープ・受け入れ条件の判断が本体。コード調査は codebase-reader（sonnet 固定済み）へ委任 |
-| jarvis-reading-notes | 継承 | キャプチャは軽いが、壁打ちの質はセッションモデルそのもの |
 | jarvis-capture | 継承 | 深掘りインタビューの質問の質が本体（一問一答の定型作業ではない） |
 
 ### friday（共有ドキュメント系）
@@ -75,45 +74,20 @@
 | db-schema-designer / api-designer / infra-architecture-designer | 壁打ち設計が本体。opus 以上推奨 |
 | db-migration-safety-checker / slow-query-hunter / pr-splitter / env-doctor / test-scaffolder | 静的照合・分割は sonnet でも実用だが、見落としコストを考慮し継承のまま |
 
-### ultron（事務・金融・資産系）
-
-| スキル | 指定 | 理由・委任 |
-|---|---|---|
-| ultron-invoice-builder | ピン sonnet | 金額計算は全てスクリプト。明細整理のみ |
-| ultron-timesheet-aggregator | ピン sonnet | 合算はスクリプト。分類は「未分類に倒す」設計 |
-| ultron-tax-prep-organizer | ピン sonnet | 科目は候補付けのみ。判断が分かれる取引は設計上「要確認」行き |
-| ultron-personal-budget-manager | ピン sonnet | レシート・メール明細の起こしと定型集計 |
-| ultron-family-budget-manager | ピン sonnet | レシート読み取り（失敗は inbox 残しの設計） |
-| ultron-dividend-recorder | ピン sonnet | 配当書類の読み取りと台帳追記。検算・集計はスクリプト |
-| ultron-high-dividend-stock-screener | ピン sonnet | 公開情報の収集・機械的な篩い。銘柄ごとの個別取得は haiku 委任可 |
-| ultron-contract-review-assistant | 継承（opus 以上推奨） | 条項リスクの見落としコストが大きい |
-
 ### edith（調査・データ収集・分析系）
 
 | スキル | 指定 | 理由・委任 |
 |---|---|---|
-| edith-freelance-rate-research | ピン sonnet | 公開統計の収集・レンジ整理 |
 | edith-tech-selection-research | 継承（opus 以上推奨） | 7 軸評価と推奨判断が本体。候補ごとの情報収集は sonnet 委任 |
 | edith-competitor-market-scan | 継承 | 個別競合の調査は sonnet 委任、横断統合はセッションモデル |
 | edith-product-discovery | 継承（opus / fable 推奨） | 発想と壁打ちの質が本体。コード調査は codebase-reader（sonnet） |
 
-### griot（練習・コーチング系）
-
-| スキル | 指定 | 理由・委任 |
-|---|---|---|
-| griot-explain-prep | 継承（opus 以上推奨） | 曖昧さ・不足の指摘と壁打ちの質が本体。資料はテンプレ固定の流し込み |
-| griot-explain-coach | 継承（opus 以上推奨） | ペルソナ視点の添削品質が本体（パイプラインの核）。指摘の集計・台帳操作はスクリプト |
-| griot-explain-english | ピン sonnet | ノート→英語資料・口語スクリプトの定型変換。不自然な英語を観測したらピンを外す |
-
-### karen（一時利用・汎用系）/ vision（プライベート・人間関係系）
+### karen（一時利用・汎用系）
 
 | スキル | 指定 | 理由 |
 |---|---|---|
-| karen-learning-roadmap | ピン sonnet | 固定フォーマットの計画生成・進捗追記 |
 | karen-meeting-prep-briefer | 継承 | スタンス案・想定問答の質を優先 |
 | karen-problem-essence-organizer | 継承（opus / fable 推奨） | 批判的な対話が本体 |
-| karen-self-evolving-skill-creator | 継承（opus 以上推奨） | SKILL.md の設計はメタ作業 |
-| vision-people-memory | ピン sonnet | 会話からの抽出と台帳追記 |
 
 ## ステップ単位の委任パターン（スキル共通）
 

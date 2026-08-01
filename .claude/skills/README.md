@@ -20,12 +20,13 @@
 | `jarvis` | 作業記録・一次資料系 | AI に読ませる機械的なログや、自分自身が見る一次資料的なもの（作業ログの収集・分類・整理、一次記録、ナレッジ蓄積） |
 | `friday` | 共有ドキュメント系 | 上司・クライアント・チームメンバーに共有する発表資料やプロジェクトドキュメントの作成（議事録・報告スライドなど） |
 | `arc-reactor` | コーディング・レビュー系 | 実装・リファクタリング・コードレビュー |
-| `ultron` | 事務・金融・資産系 | 事務作業・金融・資産運用 |
 | `edith` | 調査・データ収集・分析系 | リサーチ・データ収集・分析 |
-| `griot` | 練習・コーチング系 | 報告説明・プレゼン・英会話・設計トレーニングなど、自分の力を鍛える個人練習・コーチング。聞き手・読み手は自分自身 |
 | `karen` | 一時利用・汎用系 | 用途が固定されない汎用・一時利用 |
-| `vision` | プライベート・人間関係系 | 仕事の成果物ではない私生活領域（人間関係の記録・家族・個人の暮らし）。読み手は自分だけ |
 | `jocasta` | LLM 評価・検証系 | LLM を使ったアプリケーションの生成品質の検証・改善（理想/NG 回答の定義、LLM-as-a-judge による採点、壁打ちによる根本改善） |
+
+プライベート・勉強用の分類（`ultron` 事務・金融・資産系 / `griot` 練習・コーチング系 /
+`vision` プライベート・人間関係系）は **onclimb-cabin リポジトリ**に移管した。
+当リポジトリは IT エンジニアとしての業務（貸与 PC に入れられるもの）のみを扱う。
 
 ### jarvis と friday の判断軸
 
@@ -61,9 +62,7 @@
 | `jarvis-todo-management` | 作業記録・一次資料系 |
 | `jarvis-todo-prioritizer` | 作業記録・一次資料系 |
 | `jarvis-issue-planner` | 作業記録・一次資料系 |
-| `jarvis-reading-notes` | 作業記録・一次資料系 |
 | `jarvis-capture` | 作業記録・一次資料系 |
-| `jarvis-modeling-notes` | 作業記録・一次資料系 |
 | `friday-doc-planner` | 共有ドキュメント系 |
 | `friday-daily-report` | 共有ドキュメント系 |
 | `friday-giziroku` | 共有ドキュメント系 |
@@ -88,32 +87,13 @@
 | `arc-reactor-db-schema-designer` | コーディング・レビュー系 |
 | `arc-reactor-api-designer` | コーディング・レビュー系 |
 | `edith-tech-selection-research` | 調査・データ収集・分析系 |
-| `edith-freelance-rate-research` | 調査・データ収集・分析系 |
 | `edith-competitor-market-scan` | 調査・データ収集・分析系 |
 | `edith-product-discovery` | 調査・データ収集・分析系 |
-| `edith-cli-command-quality` | 調査・データ収集・分析系 |
-| `ultron-high-dividend-stock-screener` | 事務・金融・資産系 |
-| `ultron-invoice-builder` | 事務・金融・資産系 |
-| `ultron-timesheet-aggregator` | 事務・金融・資産系 |
-| `ultron-tax-prep-organizer` | 事務・金融・資産系 |
-| `ultron-contract-review-assistant` | 事務・金融・資産系 |
-| `ultron-personal-budget-manager` | 事務・金融・資産系 |
-| `ultron-family-budget-manager` | 事務・金融・資産系 |
-| `ultron-dividend-recorder` | 事務・金融・資産系 |
-| `ultron-portfolio-analyzer` | 事務・金融・資産系 |
-| `griot-explain-prep` | 練習・コーチング系 |
-| `griot-explain-coach` | 練習・コーチング系 |
-| `griot-explain-english` | 練習・コーチング系 |
-| `griot-modeling-domain-challenge` | 練習・コーチング系 |
-| `griot-modeling-drill` | 練習・コーチング系 |
-| `vision-people-memory` | プライベート・人間関係系 |
 | `jocasta-eval-designer` | LLM 評価・検証系 |
 | `jocasta-eval-runner` | LLM 評価・検証系 |
 | `jocasta-eval-improver` | LLM 評価・検証系 |
 | `jocasta-eval-autopilot` | LLM 評価・検証系 |
 | `karen-problem-essence-organizer` | 一時利用・汎用系 |
-| `karen-self-evolving-skill-creator` | 一時利用・汎用系 |
-| `karen-learning-roadmap` | 一時利用・汎用系 |
 | `karen-meeting-prep-briefer` | 一時利用・汎用系 |
 
 ## 補足
