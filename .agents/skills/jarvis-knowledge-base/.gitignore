@@ -1,0 +1,10 @@
+# knowledge-base スキル: コード・設定・テンプレートのみを追跡する。
+# 生成物(vault)は knowledge-base/ に分離され、リポジトリ直下の .gitignore で除外する
+# （別 private リポジトリで管理する前提。蓄積場所と公開場所を分ける）。
+
+# Python キャッシュ
+__pycache__/
+*.pyc
+
+# 念のため: 万一データがここに生成されても追跡しない
+/knowledge-base/

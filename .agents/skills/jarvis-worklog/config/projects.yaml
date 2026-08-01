@@ -1,0 +1,118 @@
+# プロジェクト定義（classify.py が使う）
+# 分類の手がかり優先順位: ① cwd（作業ディレクトリパス, 最も確実）
+#                         → ② git リポジトリ名（cwd から導出）
+#                         → ③ LLM 判定（claude -p / Sonnet, ①② を外したセッションのみ）
+#                         → ④ 本文キーワード部分一致（claude 不在/失敗/--no-llm 時の fallback）
+# どれにも当たらなければ "未分類"（_unclassified）に置く。誤分類より未分類を優先。
+#
+# 依頼者へ: 参画プロジェクトごとに 1 ブロック追加する。
+#   id         : 出力ディレクトリ名（英数字・ハイフン推奨。顧客名は避けマスキング前提）
+#   path_globs : cwd がこのいずれかと完全一致、またはディレクトリ境界付きで前方一致したら確定（最優先）
+#                （単純な部分一致はしない: /path/gcp-sandbox は /path/gcp-sand に一致しない）
+#                複数プロジェクトに一致する場合は最長の glob が勝つ（リポジトリルートを glob に持つ
+#                プロジェクトがあっても、より深いパスを持つサブプロジェクトの定義が優先される）
+#   repos      : git リポジトリ名がこのいずれかと一致したら確定
+#   keywords   : 本文にこの語が含まれれば候補（fallback の手がかり。LLM へのヒントにも使う）
+#   description: （任意）プロジェクトの一言説明。LLM 判定の精度を上げるヒントになる
+
+projects:
+  - id: onclimb-industries
+    path_globs:
+      - /Users/satoshi-onga/Documents/onclimb-industries
+    repos:
+      - onclimb-industries
+    keywords:
+      - worklog
+      - 作業記録
+
+  # 旧パス（Documents/climbing-apps など）は記録済み cwd 文字列で過去ログを振り分けるため残す
+  - id: noboru-note
+    path_globs:
+      - /Users/satoshi-onga/Documents/onclimb-industries/projects/noboru-note
+      - /Users/satoshi-onga/Documents/climbing-apps/noboru-note
+    repos:
+      - noboru-note
+    keywords:
+      - noboru
+
+  - id: climbinsight
+    path_globs:
+      - /Users/satoshi-onga/Documents/onclimb-industries/projects/climbinsight
+      - /Users/satoshi-onga/Documents/climbing-apps/climbinsight
+    repos:
+      - climbinsight
+    keywords: []
+
+  - id: personal-dashboard
+    path_globs:
+      - /Users/satoshi-onga/Documents/onclimb-industries/projects/personal-dashboard
+      - /Users/satoshi-onga/Documents/personal-dashboard
+    repos:
+      - personal-dashboard
+    keywords: []
+
+  - id: budget-bot
+    path_globs:
+      - /Users/satoshi-onga/Documents/account/budget-bot
+    repos:
+      - budget-bot
+    keywords: []
+
+  - id: gcp-sand
+    path_globs:
+      - /Users/satoshi-onga/Documents/gcp-sand
+    repos:
+      - gcp-sand
+    keywords: []
+
+  # ariadne / marginalia は my-own-apps リポジトリ内のサブアプリ。一括で my-own-apps に分類する
+  - id: my-own-apps
+    path_globs:
+      - /Users/satoshi-onga/Documents/onclimb-industries/projects/my-own-apps
+      - /Users/satoshi-onga/Documents/portfolio/my-own-apps
+    repos:
+      - my-own-apps
+    keywords: []
+
+  - id: dotfiles
+    path_globs:
+      - /Users/satoshi-onga/Documents/dotfiles
+    repos:
+      - dotfiles
+    keywords: []
+
+  # 既にディレクトリは存在しないが、記録済み cwd 文字列で過去ログを振り分ける
+  - id: skills
+    path_globs:
+      - /Users/satoshi-onga/Documents/skills
+    repos: []
+    keywords: []
+
+  # iron-legion の自律実行ワークフロー。LLM サンドボックスは OS の一時ディレクトリで動くため
+  # そのパスを cwd で拾う（マシン固有のパスだが記録済み cwd 文字列の振り分けが目的なのでこれでよい）
+  - id: extremis
+    path_globs:
+      - /private/var/folders/3s/f4szhq014rlbdfng_m5qhgrc0000gn/T/extremis-llm-sandbox
+      - /Users/satoshi-onga/Documents/onclimb-industries/projects/iron-legion/extremis
+    repos:
+      - extremis-llm-sandbox
+    keywords:
+      - extremis
+    description: iron-legion の自己改善エンジニアリングループ（issue を渡すと実装→検証→PR まで自律実行）
+
+  - id: veronica
+    path_globs:
+      - /private/var/folders/3s/f4szhq014rlbdfng_m5qhgrc0000gn/T/veronica-llm-sandbox
+      - /Users/satoshi-onga/Documents/onclimb-industries/projects/iron-legion/veronica
+    repos: []
+    keywords:
+      - veronica
+    description: iron-legion のマネジメント側ディスカバリーループ（観点カタログで必要事項を洗い出し issue 化）
+
+  # --- 例: SES 参画先（顧客名は出さず汎用 id にする）-----------------
+  # - id: client-a
+  #   path_globs:
+  #     - /Users/satoshi-onga/work/client-a
+  #   repos:
+  #     - client-a-backend
+  #   keywords: []

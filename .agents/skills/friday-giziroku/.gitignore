@@ -1,0 +1,12 @@
+# giziroku スキル: コード・設定・テンプレ・参照のみを追跡する。
+# 入力の文字起こし・生成議事録・退避原文は giziroku/ に分離され、
+# リポジトリ直下の .gitignore で /giziroku/ ごと除外している。
+
+# Python キャッシュ
+__pycache__/
+*.pyc
+
+# 念のため: 万一データがここに生成されても追跡しない
+/transcripts/
+/processed/
+/minutes/

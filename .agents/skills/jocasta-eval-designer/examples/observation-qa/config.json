@@ -1,0 +1,23 @@
+{
+  "app": {
+    "name": "observation-qa",
+    "description": "クライミング（ボルダリング・リード）の質問、特にオブザベーション（登る前のルート観察・ムーブの計画）について日本語で回答する Q&A サービス。想定ユーザーは初心者〜中級者のクライマー。"
+  },
+  "adapter": {
+    "type": "command",
+    "command": ["bash", "app/answer.sh"],
+    "timeout_sec": 180
+  },
+  "judge": {
+    "command": ["claude", "-p", "--model", "claude-sonnet-5", "--output-format", "json"],
+    "timeout_sec": 300,
+    "metrics": ["correctness", "completeness", "ng_compliance", "relevancy"],
+    "weights": {
+      "correctness": 0.3,
+      "completeness": 0.25,
+      "ng_compliance": 0.3,
+      "relevancy": 0.15
+    },
+    "pass_threshold": 0.7
+  }
+}
