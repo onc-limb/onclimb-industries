@@ -1,0 +1,3 @@
+[mcp_servers.google-tasks]
+command = "/Users/satoshi-onga/Documents/onclimb-industries/mcp-servers/google-tasks/.venv/bin/python"
+args = ["/Users/satoshi-onga/Documents/onclimb-industries/mcp-servers/google-tasks/server.py"]
