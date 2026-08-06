@@ -5,10 +5,11 @@ Single source of truth: todo-data/todos.json (current state snapshot).
 Every mutation is also appended to todo-data/events.jsonl (append-only log).
 Design doc: docs/todo-management-redesign-2026-07-02.md (schema_version 2).
 
-Data dir resolution order (same convention as other skills):
+Data dir resolution order:
   1. TODO_DATA environment variable
-  2. <git repo root>/todo-data (walk up from cwd looking for .git)
-  3. <cwd>/todo-data
+  2. <skill repo root>/todo-data (walk up from this script's location looking
+     for .git, so running from projects/<name>/ or a worktree does not split
+     the ledger)
 """
 from __future__ import annotations
 
@@ -33,11 +34,13 @@ def resolve_data_dir() -> Path:
     env = os.environ.get("TODO_DATA")
     if env:
         return Path(env).expanduser().resolve()
-    cur = Path.cwd().resolve()
-    for candidate in (cur, *cur.parents):
+    script_dir = Path(__file__).resolve().parent
+    for candidate in (script_dir, *script_dir.parents):
         if (candidate / ".git").exists():
             return candidate / "todo-data"
-    return cur / "todo-data"
+    raise SystemExit(
+        "error: could not locate repo root from script location; set TODO_DATA"
+    )
 
 
 def now_iso() -> str:
