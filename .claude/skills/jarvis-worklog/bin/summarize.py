@@ -16,10 +16,18 @@
   - 元ログにない内容を捏造しない。不明点は「記録なし」と明示
   - 報告書としての体裁づくりより、情報の網羅・粒度・正確さを優先する
 
+入力は 2 系統のハイブリッド:
+  - 申告イベント（events/<date>.jsonl、record.py 経由）… エージェント自身の一次申告。
+    背景・実施・障害・結果の骨格として最優先で使う。
+  - 分類済みログ（classified/<pid>/<date>.jsonl）… 受動収集の全記録。骨格の詳細を
+    埋める・裏付ける付加情報。申告漏れの検出（「（イベント申告なし）」マーカー）にも使う。
+  イベントだけがありログが無い (project, date) も digest 生成対象になる。
+  project が "?" のイベントは _unclassified として扱う（誤分類より未分類優先）。
+
 高速化のための挙動:
-  - 差分スキップ: 既存 digest が分類済みログ（classified/<pid>/<date>.jsonl）より新しければ
-    生成をスキップする（classify 側も内容不変ならファイルを触らないため、この比較が機能する）。
-    強制再生成は --force。
+  - 差分スキップ: 既存 digest が入力（classified/<pid>/<date>.jsonl と events/<date>.jsonl の
+    新しい方）より新しければ生成をスキップする（classify 側も内容不変ならファイルを
+    触らないため、この比較が機能する）。強制再生成は --force。
   - 2 形式統合: project と tech の両方が対象のときは 1 回の claude 呼び出しで両形式を
     出力させ、区切り行で分割して保存する（呼び出し回数が半分になる）。
 
@@ -85,16 +93,35 @@ BASE_INSTRUCTION = """\
 6. 各見出しは箇条書きで具体的に。後で報告書を書く人が困らないよう、固有の事実・数値・コマンド・判断を漏れなく拾う。
 7. テンプレ内に表・ステータスラベル（[完了] 等）・サブ見出し（### …）・「状況/結論/根拠」等の小構造が指定されている場合は、その書式に従う。該当する事実が無い項目・セクションは「記録なし」と明記し、見出し自体は省略しない。
 8. 時間帯・工数は、作業ログ各行のタイムスタンプ（[HH:MM:SS]）から読み取れる範囲で記載する（無理に推定しない）。
-{segment_note}
+{events_rule}{segment_note}
 {output_spec}
 
 # 対象メタ情報
 - プロジェクト: {project}
 - 日付: {date}
-
+{events_section}
 # 作業ログ
 {log}
 """
+
+# 申告イベントがある場合のみ厳守事項へ追記する突き合わせルール。
+# イベント＝骨格（一次情報）、作業ログ＝肉付け・裏付けの付加情報、という立ち位置を固定する。
+EVENTS_RULE = """\
+9. 「# エージェント申告イベント」セクションがある場合の突き合わせ:
+   - 申告イベントは作業エージェント自身による一次情報であり、整理の**骨格**として使う。
+     背景・目的・障害・結果は申告の記述を優先し、作業ログはその詳細を埋める・裏付けるための
+     付加情報として使う。
+   - 作業ログに明確に存在するまとまった作業に、対応する申告イベントが無い場合は、その項目に
+     「（イベント申告なし）」と添える（申告漏れの検出が目的。細かな操作単位には付けない）。
+   - 申告イベントがあるのに作業ログ側に対応する痕跡が無い場合は「（生ログに対応記録なし）」と添える。
+   - 申告と作業ログの内容が食い違う場合は、どちらかを捨てずに両論併記し「（申告と生ログが不一致）」と添える。
+"""
+
+# イベントだけがあり分類済みログが無い (project, date) 用のログ差し替え文
+EVENTS_ONLY_LOG_NOTE = (
+    "（作業ログなし: この日このプロジェクトの分類済みログが無く、申告イベントのみが入力。"
+    "作業ログ由来でしか書けない項目は「記録なし（生ログなし）」と明示する）"
+)
 
 # 出力フォーマット指定。1 形式のみのときは従来どおりテンプレを 1 つ渡す。
 SINGLE_OUTPUT_SPEC = """\
@@ -121,7 +148,7 @@ MERGED_OUTPUT_SPEC = """\
 # 各セグメントの出力は「## 【時間帯 i/n】」見出しの下に連結されるため、
 # テンプレを丸ごと繰り返すと H1 や TL;DR が N 回並んで階層が壊れる。
 SEGMENT_NOTE = """\
-9. この作業ログは長いため時間帯で分割されており、あなたが整理するのはその一部です。
+10. この作業ログは長いため時間帯で分割されており、あなたが整理するのはその一部です。
    出力は他の時間帯の整理と「## 【時間帯 i/n】」見出しの下に連結されるため、
    （2 形式出力の場合は各形式とも）H1 見出し（# …）とテンプレ冒頭の結論層
    （TL;DR・成果サマリ）のセクションは出力せず、それ以降の ## 見出しから書き始める。"""
@@ -165,13 +192,25 @@ def reconcile_bands(project, date, band_blocks):
             "突き合わせること）" % (header, result))
 
 
-def digest_is_fresh(out_path, src_path):
-    """digest が分類済みログより新しければ True（＝再生成不要）。
-    classify が内容不変のファイルを触らない（mtime 保持）ことを前提にした差分スキップ。"""
+def digest_is_fresh(out_path, src_paths):
+    """digest が全入力（分類済みログ・イベント）より新しければ True（＝再生成不要）。
+    classify が内容不変のファイルを触らない（mtime 保持）ことを前提にした差分スキップ。
+    イベントは追記専用なので、events ファイルの mtime 更新 = 新しい申告あり。"""
     try:
-        return os.path.getmtime(out_path) >= os.path.getmtime(src_path)
+        out_m = os.path.getmtime(out_path)
     except OSError:
         return False
+    src_m = []
+    for p in src_paths:
+        if not p:
+            continue
+        try:
+            src_m.append(os.path.getmtime(p))
+        except OSError:
+            pass
+    if not src_m:
+        return False
+    return out_m >= max(src_m)
 
 
 def split_merged_output(text):
@@ -282,6 +321,47 @@ def read_entries(path):
     return out
 
 
+def events_file(home, date):
+    return os.path.join(home, "events", "%s.jsonl" % date)
+
+
+def load_events_by_date(home, date=None):
+    """申告イベント（record.py が書く events/<date>.jsonl）を読み、
+    {date: {project_id: [event, ...]}} を返す。project "?" は _unclassified 扱い。"""
+    out = {}
+    pat = os.path.join(home, "events", "%s.jsonl" % (date or "*"))
+    for path in sorted(glob.glob(pat)):
+        d = os.path.basename(path)[:-6]
+        per = out.setdefault(d, {})
+        for ev in read_entries(path):
+            pid = ev.get("project") or "?"
+            if pid == "?":
+                pid = "_unclassified"
+            per.setdefault(pid, []).append(ev)
+    return out
+
+
+def render_events_section(events, banded):
+    """申告イベント一覧をプロンプトへ挿すセクション文字列にする（イベント無しなら ""）。"""
+    if not events:
+        return ""
+    lines = []
+    for ev in events:
+        ts = (ev.get("ts") or "")[11:16]
+        lines.append("[%s] 申告(%s) agent=%s" % (ts, ev.get("kind"), ev.get("agent")))
+        for key, label in (("background", "背景"), ("did", "実施"),
+                           ("blocker", "障害"), ("result", "結果")):
+            if ev.get(key):
+                lines.append("  %s: %s" % (label, ev[key]))
+        if ev.get("refs"):
+            lines.append("  関連: %s" % ", ".join(ev["refs"]))
+    scope = ("この一覧は 1 日全体の申告であり、下の作業ログの時間帯に該当するものを中心に使う。"
+             if banded else "")
+    return ("\n# エージェント申告イベント（一次情報・整理の骨格）\n"
+            "作業したエージェント自身が「作業の区切り」「障害遭遇時」に申告した構造化記録。%s\n\n%s\n"
+            % (scope, "\n".join(lines)))
+
+
 def run_claude_many(prompts):
     """複数プロンプトを最大 CONCURRENCY 件まで同時に claude へ投げ、
     入力順で [(ok, output_or_error), ...] を返す。"""
@@ -327,16 +407,27 @@ def main():
     cls_dir = os.path.join(home, "classified")
     date, project, formats, dry, force = parse_args(sys.argv[1:])
 
-    # 対象 (project_id, date, path) を列挙
+    # 対象 (project_id, date, path) を列挙。path は分類済みログ（無ければ None）
     targets = []
-    proj_dirs = [project] if project else [
+    proj_dirs = [project] if project else ([
         d for d in os.listdir(cls_dir) if os.path.isdir(os.path.join(cls_dir, d))
-    ]
+    ] if os.path.isdir(cls_dir) else [])
     for pid in proj_dirs:
         pat = os.path.join(cls_dir, pid, "%s.jsonl" % (date or "*"))
         for f in sorted(glob.glob(pat)):
             d = os.path.basename(f)[:-6]
             targets.append((pid, d, f))
+
+    # 申告イベント（骨格）を読み込み、イベントしか無い (project, date) も対象に加える
+    # （記録漏れではなく「生ログの無い作業」— 例: ログ収集対象外のエージェントの申告 — を落とさない）
+    events_all = load_events_by_date(home, date)
+    seen = {(pid, d) for pid, d, _ in targets}
+    for d in sorted(events_all):
+        for pid in sorted(events_all[d]):
+            if project and pid != project:
+                continue
+            if (pid, d) not in seen:
+                targets.append((pid, d, None))
 
     if not targets:
         sys.stderr.write("[summarize] 対象なし (date=%s project=%s)\n" % (date, project))
@@ -356,15 +447,21 @@ def main():
             out_dir = os.path.join(home, OUTPUT_SUBDIR, fmt)
             os.makedirs(out_dir, exist_ok=True)
             out_paths[fmt] = os.path.join(out_dir, "%s_%s.md" % (pid, d))
-        # 差分スキップ: digest が分類済みログより新しい形式は生成しない
-        stale = [f for f in formats if force or not digest_is_fresh(out_paths[f], path)]
+        ev_list = (events_all.get(d) or {}).get(pid) or []
+        ev_path = events_file(home, d) if ev_list else None
+        # 差分スキップ: digest が全入力（分類済みログ・イベント）より新しい形式は生成しない
+        srcs = [path, ev_path]
+        stale = [f for f in formats if force or not digest_is_fresh(out_paths[f], srcs)]
         if not stale:
             skipped += 1
             continue
-        entries = read_entries(path)
+        entries = read_entries(path) if path else []
         chunks = split_to_fit(entries)
         if not chunks or not any(txt.strip() for _, txt in chunks):
-            continue
+            if not ev_list:
+                continue
+            # イベントのみの対象: 作業ログの代わりに注記を入れて 1 セグメントで生成する
+            chunks = [([], EVENTS_ONLY_LOG_NOTE)]
         disp_pid = "未分類" if pid == "_unclassified" else pid
         n = len(chunks)
         # テンプレ H1 のプレースホルダを実値へ（{一般化した…} 等 LLM 向けの穴は残す）
@@ -392,6 +489,8 @@ def main():
             prompt = BASE_INSTRUCTION.format(
                 output_spec=spec, project=disp_pid, date=d, log=log_for_prompt,
                 segment_note=(SEGMENT_NOTE if n > 1 else ""),
+                events_rule=(EVENTS_RULE if ev_list else ""),
+                events_section=render_events_section(ev_list, banded=(n > 1)),
             )
             units.append((span, prompt))
         jobs.append({
