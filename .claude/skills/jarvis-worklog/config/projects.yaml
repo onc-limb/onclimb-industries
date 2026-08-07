@@ -109,6 +109,15 @@ projects:
       - veronica
     description: iron-legion のマネジメント側ディスカバリーループ（観点カタログで必要事項を洗い出し issue 化）
 
+  # プライベート・勉強用リポジトリ（2026-08-01 の分割で onclimb-industries から独立）
+  - id: onclimb-cabin
+    path_globs:
+      - /Users/satoshi-onga/Documents/onclimb-cabin
+    repos:
+      - onclimb-cabin
+    keywords: []
+    description: プライベート・勉強用のスキル/演習リポジトリ（チーム開発演習 agora など）
+
   # --- 例: SES 参画先（顧客名は出さず汎用 id にする）-----------------
   # - id: client-a
   #   path_globs:
