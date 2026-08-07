@@ -184,12 +184,21 @@ python3 "$SKILL/bin/record.py" blocker --project <id> --blocker "<エラー原�
 ## 夜間の先回り実行（推奨の自動化）
 
 `bin/nightly.sh` が collect →（raw が更新された日だけ）classify → summarize を無人で回す。
-毎晩これを動かしておくと digest が常に先回りで生成済みになり、日中の「まとめて」は
+これが回っていると digest が常に先回りで生成済みになり、日中の「まとめて」は
 未分類プロジェクトの確認と ToDo 突き合わせだけで**ほぼ即答**になる。
 
-- セットアップ: `deploy/com.user.worklog.nightly.plist`（launchd。毎日 23:50）を使う。
-  手順は plist 冒頭のコメント参照。cron 派は `deploy/crontab.sample` のオプション節。
-  **collect 単体の plist（com.user.worklog.collect.plist）とは併用しない**（nightly が collect を内包）。
+- **セットアップ（推奨: Claude Code hook）**: ユーザーレベル `~/.claude/settings.json` の
+  hooks に登録する（設定済み）:
+  - `SessionStart` → `bin/hook_nightly.sh` … スロットル（既定 1 時間）と PID ロック付きで
+    `nightly.sh --skip-today` をデタッチ起動。**完了した日**（前日以前）だけを digest 化し、
+    進行中の当日は対象外（当日分は「まとめて」か翌日の hook が拾う）。
+  - `SessionEnd` → `bin/collect.sh` … セッション終了ごとの取りこぼし収集。
+  - hook はユーザーが Documents アクセスを許可済みの端末文脈で動くため、**追加の TCC
+    権限が不要**。前日以前の処理はその日最初のセッション開始時に走る。
+- 旧方式の launchd（`deploy/com.user.worklog.nightly.plist`、毎日 23:50）は、無人実行が
+  TCC で Documents を読めず**フルディスクアクセス付与が必要になるため非推奨**（2026-08-07
+  に hook 方式へ移行済み）。Claude Code を全く起動しない日も 23:50 に必ず回したい場合のみ、
+  権限を絞る工夫（bash のコピーへの限定付与等）とセットで検討する。
 - 処理済み管理は `worklog-data/logs/nightly/<日付>.stamp`。classify と summarize が両方成功した日だけ
   stamp を更新し、失敗した日は翌晩に再試行する（差分スキップがあるので再試行は安い）。
 - 夜間に生成された `_unclassified` の digest は、後日プロジェクト登録して再分類すると

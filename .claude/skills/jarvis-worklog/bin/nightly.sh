@@ -4,8 +4,14 @@
 # ToDo 突き合わせだけになり、ほぼ即答になる。
 #
 # 使い方:
-#   bin/nightly.sh                       # launchd(deploy/com.user.worklog.nightly.plist) / cron から毎晩 1 回
+#   bin/nightly.sh                       # 手動 / cron から
+#   bin/nightly.sh --skip-today          # 当日分を処理しない（hook_nightly.sh が使う。
+#                                        #   進行中の日を日中に何度も再生成しないため）
 #   WORKLOG_DATA=/path bin/nightly.sh    # データ置き場を上書きしたい場合
+#
+# 起動経路は Claude Code の SessionStart hook（bin/hook_nightly.sh）が推奨。
+# launchd(deploy/com.user.worklog.nightly.plist) は TCC で Documents を読めず
+# 追加権限（フルディスクアクセス）が要るため非推奨になった。
 #
 # 仕組み:
 #   - 処理済み管理は logs/nightly/<日付>.stamp。raw/<日付>.jsonl が stamp より新しい日だけ処理する。
@@ -14,6 +20,11 @@
 #   - claude CLI が無い環境では classify は決定論+キーワードに fallback し、summarize は
 #     プロンプト保存のみで失敗(exit 1)になる → stamp は更新されず、次回また対象になる。
 set -uo pipefail
+
+SKIP_TODAY=0
+if [ "${1:-}" = "--skip-today" ]; then
+  SKIP_TODAY=1
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -45,6 +56,9 @@ for raw in "$DATA"/raw/*.jsonl; do
     [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
     *) continue ;;   # undated.jsonl 等の日付でないファイルはスキップ
   esac
+  if [ "$SKIP_TODAY" = "1" ] && [ "$d" = "$(date +%F)" ]; then
+    continue   # 進行中の当日は対象外（当日分は「まとめて」か翌日の hook で生成）
+  fi
   stamp="$STAMP_DIR/$d.stamp"
   if [ -e "$stamp" ] && [ ! "$raw" -nt "$stamp" ]; then
     continue   # 前回処理以降 raw に追加が無い日
