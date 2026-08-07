@@ -114,6 +114,102 @@ def extract_entries(obj, source, redactor):
     return out
 
 
+# Codex が user メッセージへ機械挿入する定型ブロック（本人の指示ではないノイズ）
+CODEX_NOISE_PREFIXES = (
+    "# AGENTS.md instructions",
+    "<permissions instructions>",
+    "<environment_context>",
+    "<user_instructions>",
+)
+
+
+def load_codex_imported_ids(sessions_root):
+    """Codex が Claude の会話を取り込んだセッション id の集合を返す。
+
+    ~/.codex/external_agent_session_imports.json の records[].imported_thread_id。
+    これらの rollout は ~/.claude/projects から複製された会話で、cli source が
+    既に収集している内容の完全な重複になるため、codex source では除外する。"""
+    path = os.path.join(os.path.dirname(sessions_root.rstrip(os.sep)),
+                        "external_agent_session_imports.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            o = json.load(f)
+    except Exception:
+        return frozenset()
+    return frozenset(
+        r.get("imported_thread_id") for r in (o.get("records") or [])
+        if isinstance(r, dict) and r.get("imported_thread_id")
+    )
+
+
+def extract_codex_entries(obj, source, redactor, state, imported=frozenset()):
+    """Codex CLI/VSCode の rollout JSONL 1 行を §4 エントリへ変換する。
+
+    cwd / session id は行ごとではなく先頭の session_meta（と turn_context）にしか
+    無いため、state に保持する。state は cursor に永続化され、追記分だけを
+    読む再開時にも引き継がれる。event_msg は response_item と重複する
+    進捗通知（token_count 等）なのでノイズとして捨てる。
+    Claude からのインポート複製セッション（imported）はファイルごとスキップする。
+    """
+    if state.get("skip"):
+        return []
+    typ = obj.get("type")
+    payload = obj.get("payload") or {}
+    if typ in ("session_meta", "turn_context"):
+        if typ == "session_meta" and payload.get("id"):
+            state["sid"] = payload["id"]
+            if payload["id"] in imported:
+                state["skip"] = True  # cursor の meta に永続化され、以後この rollout は読まれても捨てる
+                return []
+        if payload.get("cwd"):
+            state["cwd"] = payload["cwd"]
+        return []
+    if typ != "response_item":
+        return []
+
+    ptype = payload.get("type")
+    ts = W.to_jst_iso(obj.get("timestamp"))
+    out = []
+
+    def emit(kind, tool, body, role):
+        if body is None or (isinstance(body, str) and body.strip() == ""):
+            return
+        out.append({
+            "ts": ts, "source": source, "session_id": state.get("sid"),
+            "project_id": "未分類", "cwd": state.get("cwd"), "role": role,
+            "kind": kind, "tool": tool, "body": redactor.apply(truncate(body)),
+        })
+
+    if ptype == "message":
+        role = payload.get("role") or "user"
+        if role == "developer":  # サンドボックス説明等の機械挿入プロンプト
+            return out
+        content = payload.get("content")
+        texts = [content] if isinstance(content, str) else [
+            it.get("text") for it in (content or [])
+            if isinstance(it, dict) and it.get("text")
+        ]
+        for t in texts:
+            if t.lstrip().startswith(CODEX_NOISE_PREFIXES):
+                continue
+            emit("instruction" if role == "user" else "response", None, t, role)
+    elif ptype == "reasoning":
+        # 本文は encrypted_content で読めない。summary テキストがあればそれだけ残す
+        for s in (payload.get("summary") or []):
+            t = s.get("text") if isinstance(s, dict) else None
+            if t:
+                emit("response", None, t, "assistant")
+    elif ptype in ("function_call", "custom_tool_call"):
+        args = payload.get("arguments")
+        if args is None:
+            args = payload.get("input")
+        body = args if isinstance(args, str) else json.dumps(args, ensure_ascii=False)
+        emit("tool_use", payload.get("name"), body, "assistant")
+    elif ptype in ("function_call_output", "custom_tool_call_output"):
+        emit("tool_result", None, tool_result_text(payload.get("output")), "user")
+    return out
+
+
 def iter_cli_files(path):
     for f in glob.glob(os.path.join(path, "**", "*.jsonl"), recursive=True):
         yield f
@@ -181,7 +277,8 @@ def main():
     total_new = 0
     files_seen = 0
     for src in sources:
-        if src.get("type") != "cli_jsonl":
+        stype = src.get("type")
+        if stype not in ("cli_jsonl", "codex_jsonl"):
             continue
         if src.get("os") not in (W.current_os(), "any", None):
             continue
@@ -190,6 +287,7 @@ def main():
             sys.stderr.write("[collect] パス無し(skip): %s\n" % root)
             continue
         src_tag = src.get("tag")  # 明示タグがあれば source として優先する
+        codex_imported = load_codex_imported_ids(root) if stype == "codex_jsonl" else frozenset()
         for fpath in iter_cli_files(root):
             files_seen += 1
             # カーソルは {"offset": 取り込み済みバイト位置, "size": 前回サイズ}。
@@ -224,6 +322,11 @@ def main():
             lines = data.decode("utf-8", errors="replace").splitlines()
             if skip_lines:
                 lines = lines[skip_lines:]
+            # codex はセッション文脈(cwd/sid)が先頭行にしか無いため、途中再開でも
+            # 引き継げるよう cursor の meta に保持する
+            state = None
+            if stype == "codex_jsonl":
+                state = (cur.get("meta") if isinstance(cur, dict) else None) or {}
             for ln in lines:
                 ln = ln.strip()
                 if not ln:
@@ -232,16 +335,24 @@ def main():
                     obj = json.loads(ln)
                 except Exception:
                     continue
-                sid = obj.get("sessionId")
-                source = src_tag or ("desktop" if sid in desktop else "cli")
-                for e in extract_entries(obj, source, redactor):
+                if stype == "codex_jsonl":
+                    entries = extract_codex_entries(obj, src_tag or "codex", redactor,
+                                                    state, codex_imported)
+                else:
+                    sid = obj.get("sessionId")
+                    source = src_tag or ("desktop" if sid in desktop else "cli")
+                    entries = extract_entries(obj, source, redactor)
+                for e in entries:
                     date = (e["ts"] or "")[:10] or "0000-00-00"
                     if not date or date == "0000-00-00":
                         date = "undated"
                     writer_for(date).write(json.dumps(e, ensure_ascii=False) + "\n")
                     total_new += 1
             pos = offset + len(data)  # 実際に読み終えたバイト位置（getsize 後の追記も含む）
-            cursor[fpath] = {"offset": pos, "size": pos}
+            ent = {"offset": pos, "size": pos}
+            if state:
+                ent["meta"] = state
+            cursor[fpath] = ent
 
     for fh in writers.values():
         fh.close()

@@ -47,4 +47,14 @@ sources:
     tag: desktop
     path: ${AppData}/Claude/local-agent-mode-sessions
 
+  # --- Codex CLI / VSCode 拡張のセッションログ ---------------------------
+  # rollout-*.jsonl（sessions/YYYY/MM/DD/ 配下）。cwd はファイル先頭の
+  # session_meta にしか無いため、collect が cursor の meta に保持して分類に使う。
+  # 記録漏れ対策の受動安全網（能動記録は MCP 経由の record_milestone/record_blocker）。
+  - id: codex
+    os: any
+    type: codex_jsonl
+    tag: codex
+    path: ~/.codex/sessions
+
 # Web 版（claude.ai）はローカルにファイルが存在しないため収集対象外（仕様上の制約）。
