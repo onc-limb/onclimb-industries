@@ -110,7 +110,9 @@ classify は「誤分類より未分類優先」のため、`config/projects.yam
 ## 個別実行
 
 - **収集のみ**: `bash "$SKILL/bin/collect.sh"`
-  - 複数ソース（CLI / デスクトップ Code タブ）の生ログを構造抽出・マスキングして `raw/` へ。冪等。
+  - 複数ソース（CLI / デスクトップ Code タブ / Codex `~/.codex/sessions`）の生ログを
+    構造抽出・マスキングして `raw/` へ。冪等。Codex が Claude から取り込んだ複製セッション
+    （external_agent_session_imports.json 記載）は二重計上になるため自動除外する。
 - **分類のみ**: `python3 "$SKILL/bin/classify.py" [YYYY-MM-DD] [--no-llm]`
   - ①cwd → ②git リポジトリ名（決定論）→ ③LLM 判定（`claude -p`/Haiku, ①②を外したセッションのみ）
     → ④本文キーワード部分一致（LLM 不在/失敗/`--no-llm` 時の fallback）の順で `project_id` 確定。
@@ -136,6 +138,48 @@ classify は「誤分類より未分類優先」のため、`config/projects.yam
     ヒアリングの聞き方を変えるために使う。
   - 複数の整理を並列生成する。同時数は環境変数 `WORKLOG_SUMMARIZE_CONCURRENCY`（既定 4）で調整可能。上げるほど速いが Max プランのレート枠に当たりやすくなる。
 - **退避**: `bash "$SKILL/bin/archive.sh" [YYYY-MM] [--force] [--check]`
+
+## イベント記録（エージェント申告の構造化記録口）
+
+エージェント自身が作業の区切り・障害遭遇時に申告する能動記録。受動収集（collect）が
+「何をしたか」を漏らさず拾う安全網であるのに対し、こちらは「なぜ・何に詰まった・どうなった」を
+発生時点の文脈付きで残す一次情報。summarize が**整理の骨格**として突き合わせ、
+生ログにあるのに申告が無い作業は「（イベント申告なし）」等のマーカー付きで digest に出る。
+イベントしか無い (project, date)（例: ログ収集対象外のエージェントの申告）も digest 生成対象になる。
+
+```bash
+# 作業の区切り（milestone）
+python3 "$SKILL/bin/record.py" milestone --project <id> \
+  --background "なぜ" --did "何をした" --result "どうなった" [--refs <パス/PR>]
+# 障害遭遇時に即時（blocker。エラー原文を要約せず入れる）
+python3 "$SKILL/bin/record.py" blocker --project <id> --blocker "<エラー原文>" [--did "試したこと"]
+```
+
+- 保存先: `worklog-data/events/<YYYY-MM-DD>.jsonl`（1 行 1 JSON。flock + O_APPEND の
+  単一 write で追記するため、複数エージェントの並行書き込みでも行が壊れない）
+- マスキング（`config/redaction.yaml`）は**記録時に適用**する（collect を通らない経路のため)
+- `--project` 省略時は `?`（誤分類より未分類優先。妥当性検証はしない）
+- `--agent` で記録主体を申告（既定 claude-code。MCP 経由は接続クライアント名で自動補完）
+- 記録タイミングの運用ルール（区切りで 1 件 + 障害時に即 1 件）はリポジトリ CLAUDE.md の
+  「worklog イベント記録」を参照
+
+### MCP 経由の記録（Codex 等の他エージェント向け）
+
+`bin/mcp_server.py` が record.py の薄い stdio MCP ラッパー（依存ゼロ・都度 spawn）。
+ツール `record_milestone` / `record_blocker` を公開し、記録ロジックは record.py と共通。
+
+- **Claude Code**: リポジトリ直下の `.mcp.json` に登録済み（サーバー名 `worklog`）。
+  初回のみ対話セッションでプロジェクトスコープの承認が必要。
+- **Codex CLI**: `~/.codex/config.toml` に以下を追記する（パスは絶対パスで書く）:
+
+  ```toml
+  [mcp_servers.worklog]
+  command = "python3"
+  args = ["/Users/satoshi-onga/Documents/onclimb-industries/.claude/skills/jarvis-worklog/bin/mcp_server.py"]
+  ```
+
+- `agent` 引数を省略すると initialize の clientInfo.name（例: codex）が記録主体になる。
+- 動作確認: `printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | python3 bin/mcp_server.py`
 
 ## 夜間の先回り実行（推奨の自動化）
 

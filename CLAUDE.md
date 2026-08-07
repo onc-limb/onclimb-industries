@@ -136,6 +136,21 @@ frontmatter ごと読めなくなり、`#` を含むとそこ以降がコメン�
 - 操作は必ず `.claude/skills/jarvis-todo-management/scripts/todo.py` 経由（todos.json を直接編集しない）。
   詳細な手順・原則は同スキルの SKILL.md（フロー C / F）を参照。
 
+## worklog イベント記録（作業の申告）
+
+作業の背景・実施内容・障害・結果を digest に正確に残すため、スキル起動の有無によらず
+全セッションで `.claude/skills/jarvis-worklog/bin/record.py` により構造化イベントを記録する。
+
+- **まとまった作業の区切り**（実装・修正・調査などのひと区切り）で milestone を 1 件記録する:
+  `python3 .claude/skills/jarvis-worklog/bin/record.py milestone --project <id> --background <なぜ> --did <何をした> --result <どうなった> [--refs <パス/PR>]`
+  事実の申告なので自動で行い、**一言通知する**（ToDo 突き合わせと同じ流儀）。
+- **障害・エラーに遭遇したら、その場で** blocker を 1 件記録する（解消を待たずに記録する）:
+  `python3 .claude/skills/jarvis-worklog/bin/record.py blocker --project <id> --blocker <エラー原文> [--did <試したこと>]`
+  blocker にはエラー原文を**要約せずそのまま**入れる（原料保全。マスキングは記録時に自動適用される）。
+- project が特定できないときは `--project` を省略する（`?` で記録。誤分類より未分類優先）。
+- このイベントは worklog digest の骨格になる一次情報。記録漏れは collect の生ログが
+  安全網として拾うが、背景・結果の文脈はイベントにしか残らない。
+
 ## ドメイン別知識ディレクトリ（ベストプラクティス）
 
 開発のベストプラクティス・設計知識は、リポジトリ直下のドメイン別ディレクトリに
