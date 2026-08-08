@@ -36,7 +36,7 @@
 - **friday** … 読み手が他者（上司・クライアント・チーム）。共有・発表を前提に整えたドキュメント。
 
 例: worklog のログから当日の作業を機械的にまとめる一次記録（`jarvis-record`）は jarvis。
-それを非エンジニア向けに清書・発表資料化する `friday-daily-report` は friday。
+worklog のイベント・ログを材料に報告先向けの個人日次作業報告に整える `friday-daily-report` は friday。
 
 ### friday 系の 2 段構成（doc planner → 生成スキル）
 

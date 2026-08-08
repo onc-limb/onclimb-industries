@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日次作業報告 {{date}}</title>
+<style>
+  :root {
+    --ink: #1e2a3a;
+    --navy: #17456b;
+    --teal: #1c7a86;
+    --line: #d5dfe8;
+    --bg: #f4f7fa;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    color: var(--ink);
+    background: linear-gradient(160deg, #eef3f8, var(--bg));
+    line-height: 1.7;
+    font-size: 15px;
+  }
+  .page { max-width: 860px; margin: 0 auto; padding: 32px 24px 48px; }
+  header {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-top: 4px solid var(--navy);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  header h1 { font-size: 21px; color: var(--navy); letter-spacing: .02em; }
+  .meta { margin-top: 8px; color: #47586b; font-size: 13px; }
+  .meta span { margin-right: 18px; }
+  .sec {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 22px 18px;
+    margin-bottom: 14px;
+    break-inside: avoid;
+  }
+  .sec h2 {
+    font-size: 15px;
+    color: var(--navy);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .sec h3 {
+    font-size: 13.5px;
+    color: #47586b;
+    margin: 10px 0 4px;
+  }
+  .num {
+    display: inline-block;
+    min-width: 22px;
+    margin-right: 8px;
+    text-align: center;
+    background: var(--navy);
+    color: #fff;
+    border-radius: 4px;
+    font-size: 12px;
+    padding: 1px 4px;
+  }
+  .sec.ask { border-left: 4px solid var(--teal); }
+  .sec.ask h2 { color: var(--teal); }
+  .sec.ask .num { background: var(--teal); }
+  ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+  ul.tasks { list-style: none; padding-left: 2px; }
+  ul.tasks > li { margin: 10px 0; }
+  .status {
+    display: inline-block;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    font-size: 12px;
+    padding: 0 8px;
+    margin-left: 8px;
+    color: #47586b;
+    background: #f2f6f9;
+  }
+  .status.st-done { color: var(--navy); border-color: var(--navy); }
+  .subs {
+    margin: 4px 0 0 6px;
+    padding-left: 12px;
+    border-left: 2px solid var(--line);
+    font-size: 13.5px;
+    color: #3c4c5e;
+  }
+  .subs a { color: var(--teal); word-break: break-all; }
+  .subs .lbl { font-weight: 600; color: #47586b; margin-top: 4px; }
+  .subs .detail { margin-left: 2px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; }
+  th { background: #eef3f8; color: var(--navy); font-weight: 600; white-space: nowrap; }
+  .sub { margin-top: 8px; font-size: 13px; color: #47586b; }
+  @media print {
+    body { background: #fff; font-size: 12.5px; }
+    .page { max-width: none; padding: 0; }
+    .sec, header { border-radius: 0; margin-bottom: 10px; }
+    @page { size: A4; margin: 14mm; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>日次作業報告 {{date}}</h1>
+      <div class="meta">
+        <span>報告者: {{reporter}}</span>
+        <span>案件: {{client}}</span>
+        <span>対象期間: {{period}}</span>
+      </div>
+    </header>
+    <!-- SECTIONS_START -->
+    <!-- SECTIONS_END -->
+  </div>
+</body>
+</html>

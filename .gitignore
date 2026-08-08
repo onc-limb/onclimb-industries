@@ -14,6 +14,9 @@
 /report-record/
 /report-deck/
 
+# report-daily: 個人の日次作業報告（稼働時間・案件情報を含むため追跡しない）
+/report-daily/
+
 # tech-article-drafter: 記事ドラフトと NG ワード辞書（マスキング前の機密・実名を含みうるため追跡しない）
 /articles/
 
