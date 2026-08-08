@@ -11,9 +11,9 @@
   scripts/
     parse_transcript.py # Phase A: 話者集計・抜粋・タイムライン・話者なし推定（決定的処理）
   templates/
-    meeting.md          # 会議用議事録テンプレ
-    agent_call.md       # AI エージェント通話用
+    meeting.md          # 会議・相談用議事録テンプレ（サマリー → 論点 → 決定 → TODO → 保留）
     chat.md             # 雑談用
+    notes.md            # 確認メモ（本人用・補正痕跡と不明点）テンプレ
   references/
     dialogue_flow.md    # Phase B の確認 4 点と質問の作法
     extraction.md       # 決定/保留/TODO の判定基準
@@ -24,8 +24,9 @@
 ```
 
 データと自己進化資産はリポジトリ直下 `giziroku/`（git 管理外）に置く。`transcripts/`（入力）→
-生成成功後に `processed/` へ退避（原文は削除しない）、`minutes/`（出力）、`config/`（誤変換辞書・
-参加者名簿の実データ＝蓄積先）。雛形は同梱 `config/*.example.yaml`。
+生成成功後に `processed/` へ退避（原文は削除しない）、`minutes/`（議事録＝提出用）、
+`notes/`（確認メモ＝本人用）、`config/`（誤変換辞書・参加者名簿の実データ＝蓄積先）。
+雛形は同梱 `config/*.example.yaml`。
 構成は [`giziroku/README.md`](../../../giziroku/README.md) を参照。
 
 ## 使い方
