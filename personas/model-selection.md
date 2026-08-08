@@ -40,7 +40,6 @@
 | スキル | 指定 | 理由・ステップ単位の委任 |
 |---|---|---|
 | jarvis-worklog | ピン sonnet | 収集・分類・集計はスクリプト。整理は定型フォーマット |
-| jarvis-record | ピン sonnet | 固定見出しへの整理と確認対話 |
 | jarvis-knowledge-base | ピン sonnet | digest → Obsidian ノートの定型変換 |
 | jarvis-todo-management | ピン sonnet | 台帳操作はスクリプト。マッチング・分割提案は軽い判断 |
 | jarvis-todo-prioritizer | 継承（opus 以上推奨） | 影響度・緊急度の判断と壁打ちが本体。外部期限の裏取り検索は sonnet 委任可。スコア計算・並べ替えはスクリプト |

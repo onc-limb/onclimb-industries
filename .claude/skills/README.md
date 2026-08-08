@@ -35,8 +35,8 @@
 - **jarvis** … 読み手が AI もしくは自分自身。機械的なログ、一次記録、一次資料。清書前・共有前のもの。
 - **friday** … 読み手が他者（上司・クライアント・チーム）。共有・発表を前提に整えたドキュメント。
 
-例: worklog のログから当日の作業を機械的にまとめる一次記録（`jarvis-record`）は jarvis。
-worklog のイベント・ログを材料に報告先向けの個人日次作業報告に整える `friday-daily-report` は friday。
+例: worklog のイベント・ログ収集と digest 生成（`jarvis-worklog`）は jarvis。
+それらを材料に報告先向けの個人日次作業報告に整える `friday-daily-report` は friday。
 
 ### friday 系の 2 段構成（doc planner → 生成スキル）
 
@@ -58,7 +58,6 @@ worklog のイベント・ログを材料に報告先向けの個人日次作業
 |--------|------|
 | `jarvis-worklog` | 作業記録・一次資料系 |
 | `jarvis-knowledge-base` | 作業記録・一次資料系 |
-| `jarvis-record` | 作業記録・一次資料系 |
 | `jarvis-todo-management` | 作業記録・一次資料系 |
 | `jarvis-todo-prioritizer` | 作業記録・一次資料系 |
 | `jarvis-issue-planner` | 作業記録・一次資料系 |
@@ -115,7 +114,7 @@ worklog のイベント・ログを材料に報告先向けの個人日次作業
   [`personas/writing-style.md`](../../personas/writing-style.md) に従う（friday 系は清書パス必須、
   jarvis 系は一次情報の保全側で対応）。
 - **データ出力ディレクトリ名は改名対象外**。各スキルがリポジトリ直下に生成するデータ置き場
-  （例: `worklog-data/`, `knowledge-base/`, `report-record/`, `report-deck/`, `giziroku/`）や、
-  スクリプト内部のモジュール名・環境変数（`worklog_lib`, `REPORT_DECK_DIR` 等）は、
+  （例: `worklog-data/`, `knowledge-base/`, `report-daily/`, `giziroku/`）や、
+  スクリプト内部のモジュール名・環境変数（`worklog_lib`, `REPORT_DAILY_DIR` 等）は、
   既存データとの整合を保つため旧名のまま運用する。プレフィックス規約は**スキルの識別子**
   （ディレクトリ名 / `name:`）にのみ適用する。

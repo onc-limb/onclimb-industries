@@ -87,7 +87,7 @@ BASE_INSTRUCTION = """\
    その際、欠損の型が判別できれば括弧で添える: 「記録なし（セッション中断）」（ログが途中で切れた）/
    「記録なし（ユーザー手動・ログ外）」（ユーザーが手で実施したと申告・示唆されている）/
    「記録なし（背景の記載なし）」（依頼理由・背景が会話に出てこない）。判別できなければ「記録なし」のみ。
-   ※この型は下流（jarvis-record）がヒアリングの聞き方を変えるために使う。
+   ※この型は下流（日次報告の確認対話）がヒアリングの聞き方を変えるために使う。
 4. 既に <REDACTED:種別> で伏字化された箇所はそのまま伏字のまま扱い、復元を試みない。
 5. 出力は Markdown のみ。前置き・後書き・コードフェンス囲みは不要。指定の見出し構成に厳密に従う。
 6. 各見出しは箇条書きで具体的に。後で報告書を書く人が困らないよう、固有の事実・数値・コマンド・判断を漏れなく拾う。
@@ -155,7 +155,7 @@ SEGMENT_NOTE = """\
 
 # 時間帯分割ファイルの後処理: band（時間帯セクション）間の重複・矛盾を検知して
 # digest 冒頭に「突き合わせリスト」を出す。並行セッションが別 band に分かれると、
-# 同じ作業が複数 band に別内容で書かれ、下流（jarvis-record）が食い違いに気づけないため。
+# 同じ作業が複数 band に別内容で書かれ、下流（日次報告など）が食い違いに気づけないため。
 # あくまで「ユーザーに確認する候補」であり、どちらが正しいかはここで決めない。
 RECON_INSTRUCTION = """\
 以下は、1 日の作業ログを時間帯で分割して整理した digest です（プロジェクト: {project} / 日付: {date}）。
@@ -184,11 +184,11 @@ def reconcile_bands(project, date, band_blocks):
     prompt = RECON_INSTRUCTION.format(project=project, date=date, digest=digest_text)
     # 重複・矛盾の抽出は軽い仕事なので現行 Haiku で十分（digest 本文の生成は Sonnet のまま）
     ok, result = W.run_claude(prompt, model="haiku")
-    header = "## 【時間帯間の重複・矛盾（jarvis-record での突き合わせ用）】"
+    header = "## 【時間帯間の重複・矛盾（下流での突き合わせ用）】"
     if ok:
         body = result.strip() or "- なし"
         return "%s\n\n%s" % (header, body)
-    return ("%s\n\n- （自動検知に失敗: %s。jarvis-record 側で時間帯セクションを"
+    return ("%s\n\n- （自動検知に失敗: %s。下流側で時間帯セクションを"
             "突き合わせること）" % (header, result))
 
 

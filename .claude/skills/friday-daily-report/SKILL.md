@@ -21,9 +21,11 @@ metadata:
 フォーマットの一貫性は `bin/render_report.py`(決定論的レンダラー)が保証し、
 エージェントは**材料の突き合わせ**と**対話での確定**に専念する。
 
-> 2026-08-08 に役割を特化した。それ以前の「依頼者向け日次報告スライド」の資産
-> (`bin/render_deck.py` / `templates/deck.html` / `config/glossary.yaml`、出力 `report-deck/`)は
-> プロジェクト報告スキルを将来分離するまで残置(本スキルのフローからは使わない)。
+> 2026-08-08 に役割を特化した。それ以前の「依頼者向け日次報告スライド」のフロー
+> (jarvis-record の確定記録 → スライド生成)は、プロジェクト報告を将来別立てで作る方針に
+> 伴い廃止した(jarvis-record スキル・render_deck.py 等の旧資産も削除済み)。
+> 生成済みの旧成果物はスライド 36 枚を `report-daily/legacy-deck/`、確定記録 67 件を
+> `report-daily/legacy-record/` に保全している。
 
 ## データ配置
 

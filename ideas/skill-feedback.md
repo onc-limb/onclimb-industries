@@ -6,7 +6,7 @@
 
 ## なぜ中央 1 ファイルか
 
-スキルはパイプライン（例: jarvis-worklog → jarvis-record → friday-daily-report）を組んでいるため、
+スキルはパイプライン（例: jarvis-worklog → friday-daily-report）を組んでいるため、
 使用時点では「どのスキルの責任か」が分からない不満が多い（日報スライドの不満の原因が
 worklog の digest 側にある、など）。責任スキルの特定は記録時ではなく**レビュー時**に行う。
 
