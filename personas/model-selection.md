@@ -46,6 +46,7 @@
 | jarvis-todo-prioritizer | 継承（opus 以上推奨） | 影響度・緊急度の判断と壁打ちが本体。外部期限の裏取り検索は sonnet 委任可。スコア計算・並べ替えはスクリプト |
 | jarvis-issue-planner | 継承（opus 以上推奨） | スコープ・受け入れ条件の判断が本体。コード調査は codebase-reader（sonnet 固定済み）へ委任 |
 | jarvis-capture | 継承 | 深掘りインタビューの質問の質が本体（一問一答の定型作業ではない） |
+| jarvis-allspeak | ピン sonnet | 台帳運用とテンプレ沿いの草稿生成が本体。表現の質は人手レビュー（reviewed 昇格）で担保する前提 |
 
 ### friday（共有ドキュメント系）
 

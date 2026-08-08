@@ -63,6 +63,7 @@ worklog のイベント・ログを材料に報告先向けの個人日次作業
 | `jarvis-todo-prioritizer` | 作業記録・一次資料系 |
 | `jarvis-issue-planner` | 作業記録・一次資料系 |
 | `jarvis-capture` | 作業記録・一次資料系 |
+| `jarvis-allspeak` | 作業記録・一次資料系 |
 | `friday-doc-planner` | 共有ドキュメント系 |
 | `friday-daily-report` | 共有ドキュメント系 |
 | `friday-giziroku` | 共有ドキュメント系 |
@@ -99,6 +100,9 @@ worklog のイベント・ログを材料に報告先向けの個人日次作業
 
 ## 補足
 
+- **jarvis-allspeak の正本は allspeak リポジトリ側**: `projects/allspeak/.claude/skills/` に
+  同梱し、本ディレクトリからは symlink で参照する（スキルとデータを一緒に配布するため。
+  「スキルは projects/ に依存させない」ルールのユーザー承認済みの例外。2026-08-06）。
 - **スキルの現場間流用**: 本ディレクトリのスキルを他リポジトリ / User スコープ
   （`~/.claude/skills/`）へ配布・取込するスクリプトが [`../scripts/`](../scripts/) にある
   （`export-skill.sh` / `import-skill.sh`。旧 my-best-practices/my-skills から移設）。
