@@ -21,3 +21,21 @@
 シグナルなし: 改善候補は見つかりませんでした。
 
 メモ: 進化レビューを 1 サイクルとして pipeline.jsonl に記録すること (actions に `evolve.py` を含める)。
+## 2026-08-06T15:29:12Z — auto-review
+
+- **対象**: `jarvis-todo-management`
+- **観測サイクル数 (window)**: 10
+- **検出 signal 数**: 0
+
+シグナルなし: 改善候補は見つかりませんでした。
+
+メモ: 進化レビューを 1 サイクルとして pipeline.jsonl に記録すること (actions に `evolve.py` を含める)。
+## 2026-08-06T15:34:24Z — auto-review
+
+- **対象**: `jarvis-todo-management`
+- **観測サイクル数 (window)**: 10
+- **検出 signal 数**: 0
+
+シグナルなし: 改善候補は見つかりませんでした。
+
+メモ: 進化レビューを 1 サイクルとして pipeline.jsonl に記録すること (actions に `evolve.py` を含める)。
