@@ -19,6 +19,7 @@ worklog の digest 側にある、など）。責任スキルの特定は記録�
 - NG ワード: `articles/_ng-words.txt`
 - AI 感の NG 例: `personas/writing-style.md` のカタログ
 - プロジェクト分類: `jarvis-worklog/config/projects.yaml`
+- インフラ規約（Terraform の書き方・構成図の流儀）: `arc-reactor-cloud-infra-engineer/references/{terraform-style,diagram-style}.md` の決定ログ
 
 ## 記録フォーマット
 

@@ -14,6 +14,7 @@ onclimb-industries リポジトリのプロジェクト固有ガイドライン�
 | 調査（どこに何があるか・実装の把握・影響範囲・外部情報の下調べ） | `research` | sonnet / medium |
 | レビューと難所（コード/設計レビュー・原因不明のバグ究明・性能/セキュリティ検討） | `review` | opus / xhigh |
 | 文章作成（ドキュメント・報告書・記事の草案、文章整形） | `writer` | sonnet / medium |
+| クラウドインフラ（Terraform 実装・構成図・AWS/GCP 仕様の裏取り・インフラの懸念指摘） | `cloud-infra` | opus / high |
 
 **委譲しないもの**（メインの会話で、セッション既定のモデルのまま進める）:
 

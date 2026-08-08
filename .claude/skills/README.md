@@ -86,6 +86,7 @@ worklog のイベント・ログを材料に報告先向けの個人日次作業
 | `arc-reactor-sequence-diagram-generator` | コーディング・レビュー系 |
 | `arc-reactor-db-schema-designer` | コーディング・レビュー系 |
 | `arc-reactor-api-designer` | コーディング・レビュー系 |
+| `arc-reactor-cloud-infra-engineer` | コーディング・レビュー系 |
 | `edith-tech-selection-research` | 調査・データ収集・分析系 |
 | `edith-competitor-market-scan` | 調査・データ収集・分析系 |
 | `edith-product-discovery` | 調査・データ収集・分析系 |
